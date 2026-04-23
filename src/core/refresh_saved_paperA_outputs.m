@@ -33,7 +33,7 @@ function refresh_result = refresh_saved_paperA_outputs(case_dir, varargin)
         data, data.Config, masks);
     [plot_phase_factor_s, PhaseAudit_s] = local_phase_align_modes( ...
         ranking.EigVecs, data.Ny, data.Nx, data.Config.state_layout, ...
-        masks.bubble, masks.near_wall, data.X, data.Y);
+        masks.bubble, masks.near_wall, data.X, data.Y, ranking.metrics.reference_component);
     FigureAudit = write_paperA_reference_figures(fig_dir, ranking, data, data.Config, plot_phase_factor_s, PhaseAudit_s);
 
     refresh_result = struct();
@@ -134,15 +134,47 @@ function bubble_support = local_build_bubble_support(X, Y, bubble_core)
     end
 end
 
-function [phase_factors, phase_audit] = local_phase_align_modes(EigVecs, Ny, Nx, state_layout, bubble_mask, near_wall_mask, X, Y)
+function [phase_factors, phase_audit] = local_phase_align_modes(EigVecs, Ny, Nx, state_layout, ...
+        bubble_mask, near_wall_mask, X, Y, reference_components)
 %LOCAL_PHASE_ALIGN_MODES Phase-align each sorted mode for plotting.
 
     num_modes = size(EigVecs, 2);
     phase_factors = ones(num_modes, 1);
-    phase_audit = repmat(struct('type', 'none', 'row', NaN, 'col', NaN, 'x', NaN, 'y', NaN), num_modes, 1);
+    phase_audit = repmat(struct( ...
+        'type', 'none', ...
+        'row', NaN, ...
+        'col', NaN, ...
+        'x', NaN, ...
+        'y', NaN, ...
+        'component', '', ...
+        'requested_component', ''), num_modes, 1);
     for k = 1:num_modes
+        reference_component = local_value_or_default(reference_components, k, 'u');
         [phase_factors(k), phase_audit(k)] = choose_mode_phase_factor(EigVecs(:, k), Ny, Nx, state_layout, ...
-            'BubbleMask', bubble_mask, 'NearWallMask', near_wall_mask, 'X', X, 'Y', Y);
+            'BubbleMask', bubble_mask, 'NearWallMask', near_wall_mask, ...
+            'X', X, 'Y', Y, 'ReferenceComponent', reference_component);
+    end
+end
+
+function value = local_value_or_default(values, index, default_value)
+%LOCAL_VALUE_OR_DEFAULT Read one vector/cell/string entry with fallback.
+
+    value = default_value;
+    if isempty(values)
+        return;
+    end
+    if iscell(values)
+        if numel(values) >= index
+            value = values{index};
+        end
+    elseif isstring(values)
+        if numel(values) >= index
+            value = char(values(index));
+        end
+    elseif isnumeric(values) || islogical(values)
+        if numel(values) >= index
+            value = values(index);
+        end
     end
 end
 
@@ -154,6 +186,15 @@ function Config = local_upgrade_config(Config)
     end
     if ~isfield(Config.mode_filter, 'near_wall_fraction')
         Config.mode_filter.near_wall_fraction = 0.15;
+    end
+    if ~isfield(Config.mode_filter, 'support_weighting')
+        Config.mode_filter.support_weighting = 'component_energy';
+    end
+    if ~isfield(Config.mode_filter, 'free_stream_eta_threshold')
+        Config.mode_filter.free_stream_eta_threshold = 0.50;
+    end
+    if ~isfield(Config.mode_filter, 'near_wall_support_threshold')
+        Config.mode_filter.near_wall_support_threshold = 0.10;
     end
     if ~isfield(Config.mode_filter, 'bubble_fraction_threshold')
         Config.mode_filter.bubble_fraction_threshold = 0.05;
@@ -196,6 +237,15 @@ function Config = local_upgrade_config(Config)
     end
     if ~isfield(Config.mode_filter, 'outlet_wall_fraction_threshold')
         Config.mode_filter.outlet_wall_fraction_threshold = 0.20;
+    end
+    if ~isfield(Config.mode_filter, 'plot_free_stream_fraction_threshold')
+        Config.mode_filter.plot_free_stream_fraction_threshold = 0.50;
+    end
+    if ~isfield(Config.mode_filter, 'plot_outlet_wall_fraction_threshold')
+        Config.mode_filter.plot_outlet_wall_fraction_threshold = 0.35;
+    end
+    if ~isfield(Config.mode_filter, 'plot_gallery_limit')
+        Config.mode_filter.plot_gallery_limit = 4;
     end
     if ~isfield(Config.mode_filter, 'pressure_free_stream_fraction_threshold')
         Config.mode_filter.pressure_free_stream_fraction_threshold = 0.35;

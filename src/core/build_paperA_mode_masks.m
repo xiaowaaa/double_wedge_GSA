@@ -95,8 +95,14 @@ function masks = build_paperA_mode_masks(data, Config, Ny, Nx)
         masks.bad_point = false(Ny, Nx);
     end
 
-    eta = local_wall_relative_eta(data.Y);
-    masks.free_stream = eta >= 0.50;
+    if isfield(data, 'BaseflowMasks') && isstruct(data.BaseflowMasks) && ...
+            isfield(data.BaseflowMasks, 'free_stream_mask')
+        masks.free_stream = logical(data.BaseflowMasks.free_stream_mask);
+    else
+        eta_threshold = local_get_mode_filter(Config, 'free_stream_eta_threshold', 0.50);
+        eta = local_wall_relative_eta(data.Y);
+        masks.free_stream = eta >= eta_threshold;
+    end
 end
 
 function eta = local_wall_relative_eta(Y)
@@ -109,5 +115,15 @@ function eta = local_wall_relative_eta(Y)
     height = max(top_y - wall_y, eps);
     for i = 1:Nx
         eta(:, i) = (Y(:, i) - wall_y(i)) / height(i);
+    end
+end
+
+function value = local_get_mode_filter(Config, field_name, default_value)
+%LOCAL_GET_MODE_FILTER Read one optional mode-filter field.
+
+    value = default_value;
+    if isstruct(Config) && isfield(Config, 'mode_filter') && isstruct(Config.mode_filter) && ...
+            isfield(Config.mode_filter, field_name)
+        value = Config.mode_filter.(field_name);
     end
 end

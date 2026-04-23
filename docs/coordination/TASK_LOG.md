@@ -1432,3 +1432,123 @@ Validation:
 
 Notes:
 - The pressure-equation scaling remains on the corrected `v6` path. The current fix targets selection/audit correctness and prevents oscillatory pressure tails from being treated as valid Sidharth disturbance structures.
+
+## 2026-04-23 - Review Gemini static-audit findings and tighten checker fallback plotting
+
+Summary:
+- Reviewed the Gemini static-audit report against the active production code without running an expensive `Part4` physical solve.
+- Confirmed that the descriptor-vector recovery warning is already handled correctly: `solve_paperA_descriptor_modes.m` maps scaled eigenvectors back through `EigVecs_all = Dc * EigVecs_scaled_all` before residuals, ranking, extraction, or plotting.
+- Confirmed the active SAV path is `build_shock_localized_sav_matrix.m -> build_semi_artificial_viscosity_matrix.m`; the fourth-difference stencil sign remains consistent with a dissipative high-frequency filter when added to `LNS_L`.
+- Found one valuable issue in the Gemini ranking discussion: `residual_only_fallback` still reused `plot_candidate_mask = mask_res`, so a residual-clean but checker-failed bubble-looking mode could still become a plotted lead.
+- Fixed `rank_paperA_modes.m` so residual-only fallback modes remain available for diagnostic ordering but are removed from the true plot candidate pool.
+- Fixed a related selector-sign regression in `select_paperA_plot_lead_index.m`: `u_peak_in_bubble` is now rewarded rather than penalized when choosing among plot-lead candidates.
+- Added a regression case to `tests/test_plot_lead_selection.m` that locks out residual-clean checker-failed modes from `selected_for_plots`.
+
+Files touched:
+- `src/core/rank_paperA_modes.m`
+- `src/core/select_paperA_plot_lead_index.m`
+- `tests/test_plot_lead_selection.m`
+- `docs/coordination/TASK_LOG.md`
+- `docs/coordination/ACTIVE_CONTEXT.md`
+- `docs/audit.md`
+
+Validation:
+- `matlab -batch "setup_double_wedge_paths('IncludeTests', true); test_plot_lead_selection; test_mode_filter_metrics; test_config_fields; test_paperA_pressure_row_regularization_v6;"`
+- `matlab -batch "setup_double_wedge_paths('IncludeTests', true); test_plot_lead_selection;"`
+- `matlab -batch "setup_double_wedge_paths('IncludeTests', true); run_phase2_validation;"`
+
+Notes:
+- One intermediate `run_phase2_validation` attempt failed because MATLAB could not delete an old generated test directory under `outputs/mat/test_beta_scan_part3_only_v6`; after safely removing that generated directory, the full suite passed.
+
+## 2026-04-23 - Align Sidharth ranking support, phase anchors, and lead provenance
+
+Summary:
+- Reviewed the production `main_double_wedge_part1 -> ... -> main_double_wedge_part4` path against the six reported ranking/provenance findings.
+- Confirmed the main issues: production support fractions still used a fixed `u_dominant` basis, phase anchoring still preferred `u'`, plot-lead selection was tied to the gallery subset, validity-report thresholds were duplicated locally, and free-stream masks were not consistently consumed from `BaseflowMasks`.
+- Changed production mode-filter metrics to use configurable `component_energy` support by default, with the actual support basis saved in ranking metrics and `selection_summary.mode_filter_thresholds`.
+- Added `src/core/build_paperA_mode_filter_thresholds.m` so the ranker and validity report share one resolved threshold bundle instead of duplicating numeric gates.
+- Updated phase alignment and refresh paths so `choose_mode_phase_factor(...)` accepts `ReferenceComponent`; Sidharth `w`-reference modes now anchor phase on `w'` first, with `u'` only as fallback.
+- Split lead provenance into explicit `sorted_lead`, `plot_lead`, and `publication_lead` summaries plus separate region-energy summaries. Legacy `leading_*` fields are retained only as plot-lead compatibility aliases.
+- Decoupled plot-lead candidates from gallery truncation through `ranking.plot_lead_candidate_mask`; `selected_for_plots` now controls the gallery only. Also fixed the plotted-lead `u_peak_in_bubble` sign so it is rewarded rather than penalized.
+- Made `build_paperA_mode_masks.m` prefer `BaseflowMasks.free_stream_mask`; fallback free-stream construction now uses configurable `mode_filter.free_stream_eta_threshold`.
+
+Files touched:
+- `Main_DoubleWedge_Part1_v6.m`
+- `Main_DoubleWedge_Part4_v6.m`
+- `src/core/build_paperA_baseflow_context.m`
+- `src/core/build_paperA_mode_filter_thresholds.m`
+- `src/core/build_paperA_mode_masks.m`
+- `src/core/choose_mode_phase_factor.m`
+- `src/core/compute_mode_filter_metrics.m`
+- `src/core/rank_paperA_modes.m`
+- `src/core/refresh_saved_paperA_outputs.m`
+- `src/core/select_paperA_plot_lead_index.m`
+- `src/core/validate_config.m`
+- `tests/test_config_fields.m`
+- `tests/test_mode_filter_metrics.m`
+- `tests/test_paperA_mode_masks.m`
+- `tests/test_paperA_phase_anchor.m`
+- `tests/test_plot_lead_selection.m`
+- `docs/coordination/TASK_LOG.md`
+- `docs/coordination/ACTIVE_CONTEXT.md`
+- `docs/coordination/WORK_QUEUE.md`
+- `docs/audit.md`
+
+Validation:
+- `matlab -batch "setup_double_wedge_paths('IncludeTests', true); test_config_fields; test_mode_filter_metrics; test_paperA_phase_anchor; test_paperA_mode_masks; test_plot_lead_selection;"`
+- `matlab -batch "setup_double_wedge_paths('IncludeTests', true); test_mode_coupling_audit; test_write_paperA_reference_figures_no_plot_candidate; test_resolve_part4_plot_lead_position; test_run_user_test_reuse_coupled_summary_v6; test_run_user_test_reuse_no_plot_lead_v6;"`
+- `matlab -batch "setup_double_wedge_paths('IncludeTests', true); test_part3_beta_audit_smoke; test_run_user_test_baseflow_part3_only_v6; test_run_beta_scan_part3_only_v6; test_run_sidharth2018_workflow_part3_only_v6;"`
+- `matlab -batch "files = {'Main_DoubleWedge_Part4_v6.m','src/core/rank_paperA_modes.m','src/core/select_paperA_plot_lead_index.m','src/core/choose_mode_phase_factor.m','src/core/build_paperA_mode_filter_thresholds.m','src/core/build_paperA_mode_masks.m','src/core/build_paperA_baseflow_context.m','src/core/refresh_saved_paperA_outputs.m'}; for k = 1:numel(files), msgs = checkcode(files{k}, '-id'); if ~isempty(msgs), fprintf('[checkcode] %s\n', files{k}); for j = 1:numel(msgs), fprintf('%s:%d %s %s\n', files{k}, msgs(j).line, msgs(j).id, msgs(j).message); end; end; end"`
+
+Notes:
+- Per user instruction, no new `Part4_v6` eigensolve was launched in this task. Validation stayed on targeted unit tests, reuse/plot metadata tests, and Part3-only smoke paths.
+- `checkcode` reported only existing analyzer-suppression/string-literal style warnings in the checked files; no syntax errors were reported.
+
+## 2026-04-23 - Retarget manual research workflow entry to explicit 812x382 first pass
+
+Summary:
+- Updated `run/run_research_workflow_case_v6.m` so the editable intended-case entry now defaults to `expected_dims = [812, 382]` instead of the local `270 x 128` structural benchmark dimensions.
+- Renamed the default workflow output root to `manual_research_workflow_812x382_firstpass_v6` so intended-case runs are easier to distinguish from older generic manual workflows.
+- Added an explicit hard stop that requires the user to set `baseflow_file` before the script can launch, preventing accidental reuse of the local `270 x 128` benchmark file under an intended-case parameter block.
+- Updated `docs/coordination/ACTIVE_CONTEXT.md` so the active snapshot matches the new manual-entry contract.
+
+Files touched:
+- `run/run_research_workflow_case_v6.m`
+- `docs/coordination/ACTIVE_CONTEXT.md`
+- `docs/coordination/TASK_LOG.md`
+
+Validation:
+- `matlab -batch "setup_double_wedge_paths; checkcode('run/run_research_workflow_case_v6.m','-id');"`
+
+Notes:
+- This change does not claim that the intended `Mach 7, Re = 1e5` target mode is guaranteed to appear. It only ensures the manual intended-case entry is no longer mixing an `812 x 382` workflow contract with the local `270 x 128` structural benchmark file.
+
+## 2026-04-23 - Validate Claude static review and patch only confirmed issues
+
+Summary:
+- Audited the six headline Claude review findings against the active `v6` production path and kept a strict “do not modify unless confirmed” rule.
+- Fixed the real `beta ~= 0` operator bug in `src/core/build_paperA_beta_terms_v6.m`: the `Luw` and `Lvw` viscous pointwise beta couplings now use the Stokes-consistent `-(2/3)` coefficient on `mu_x` and `mu_y`.
+- Reworked `src/core/build_paperA_pressure_closure_audit_v6.m` so Part3 no longer saves tautological pressure-closure fields; the audit now records independent density/EOS residuals and ratios, and the runner summary prints the new fields.
+- Replaced `inv(M)` with `M \ eye(3)` in `src/core/build_structured_scalar_operators.m`, switched `src/core/preprocess_baseflow.m` to analytic Sutherland derivatives, and added `tests/test_preprocess_baseflow_sutherland_derivatives.m`.
+- Deliberately did not change `src/core/build_uniform_fd_matrix.m` or `src/core/apply_structured_bc_rows.m`: the next-to-boundary second-derivative stencil is an existing tested contract, and the outlet row template remains an unresolved BC-design choice rather than a confirmed coding error.
+
+Files touched:
+- `src/core/build_paperA_beta_terms_v6.m`
+- `src/core/build_paperA_pressure_closure_audit_v6.m`
+- `src/core/build_structured_scalar_operators.m`
+- `src/core/preprocess_baseflow.m`
+- `tests/test_paperA_beta_terms_v6.m`
+- `tests/test_paperA_pressure_closure_audit_v6.m`
+- `tests/test_preprocess_baseflow_sutherland_derivatives.m`
+- `tests/test_part3_beta_audit_smoke.m`
+- `run/run_phase2_validation.m`
+- `run/run_user_test_baseflow_fullres_v6.m`
+- `docs/coordination/TASK_LOG.md`
+- `docs/audit.md`
+
+Validation:
+- `matlab -batch "cd('C:/Users/寒橘柚/Downloads/double_wedgeold'); setup_double_wedge_paths('IncludeTests', true); test_paperA_beta_terms_v6; test_paperA_pressure_closure_audit_v6; test_preprocess_baseflow_sutherland_derivatives; test_structured_scalar_operators; test_part3_beta_audit_smoke;"`
+- `matlab -batch "cd('C:/Users/寒橘柚/Downloads/double_wedgeold'); setup_double_wedge_paths('IncludeTests', true); run_phase2_validation;"`
+
+Notes:
+- The first full-suite attempt failed only because `run_phase2_validation` was invoked before calling `setup_double_wedge_paths('IncludeTests', true)`; re-running with the repo path bootstrap passed cleanly.

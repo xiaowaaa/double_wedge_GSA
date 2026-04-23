@@ -29,5 +29,22 @@ function test_paperA_phase_anchor()
     assert(abs(imag(aligned_u(3, 7))) < 1.0e-12 && real(aligned_u(3, 7)) > 0, ...
         'Bubble anchor should be rotated to a positive real value.');
 
+    w_field = zeros(Ny, Nx);
+    w_field(4, 8) = -2i;
+    w_field(12, 15) = 7.0;
+    q_mode(layout.components.w:layout.nvar:end) = w_field(:);
+
+    [phase_factor, audit] = choose_mode_phase_factor(q_mode, Ny, Nx, layout.name, ...
+        'BubbleMask', bubble_mask, 'NearWallMask', near_wall_mask, ...
+        'X', X, 'Y', Y, 'ReferenceComponent', 'w');
+
+    aligned_w = extract_state_component(q_mode * phase_factor, Ny, Nx, layout.name, 'w');
+    assert(strcmp(audit.component, 'w'), ...
+        'A w-dominant mode should use w'' as the phase-anchor component.');
+    assert(strcmp(audit.type, 'bubble'), ...
+        'Reference-component phase anchoring should still prefer the bubble mask.');
+    assert(abs(imag(aligned_w(4, 8))) < 1.0e-12 && real(aligned_w(4, 8)) > 0, ...
+        'The w'' bubble anchor should be rotated to a positive real value.');
+
     fprintf('[test_paperA_phase_anchor] PASS\n');
 end

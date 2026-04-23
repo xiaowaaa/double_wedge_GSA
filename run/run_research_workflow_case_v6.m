@@ -1,16 +1,16 @@
 %RUN_RESEARCH_WORKFLOW_CASE_V6 Editable staged workflow for double-wedge GSA.
 %
 % Edit the parameter block below, then run this script in MATLAB.
+% This manual entry is intended for the physical `812 x 382` first pass,
+% not for the local `270 x 128` structural benchmark.
 % Outputs are grouped under outputs/mat/<workflow_name>/.
 
-paths = setup_double_wedge_paths();
-project_root = paths.project_root;
-baseflow_default = fullfile(project_root, 'double_wedge_baseflow.dat');
+setup_double_wedge_paths();
 
 %% Parameter block
-workflow_name = 'manual_research_workflow_v6';
-baseflow_file = baseflow_default;    % Replace with your physical 812x382 baseflow file.
-expected_dims = [270, 128];          % Replace with [812, 382] for the physical case.
+workflow_name = 'manual_research_workflow_812x382_firstpass_v6';
+baseflow_file = '';                  % Required: set to your physical 812x382 baseflow file before running.
+expected_dims = [812, 382];          % Intended physical-case grid; do not point this script at the local 270x128 benchmark.
 % Conservative physical-case first pass:
 % 1. Downsample first to keep the descriptor pencil affordable.
 % 2. Keep the coarse beta scan on Part3 only.
@@ -66,6 +66,13 @@ pressure_gradient_clip_percentile = 95.0;
 pressure_divergence_clip_percentile = 95.0;
 suppress_pressure_gradients_in_shock = false;
 suppress_pressure_divergence_in_shock = false;
+
+if strlength(string(baseflow_file)) == 0
+    error('run_research_workflow_case_v6:BaseflowFileRequired', ...
+        ['Set baseflow_file to your intended 812x382 physical baseflow file ' ...
+         'before running this script. The local 270x128 structural benchmark ' ...
+         'must not be used here as a silent fallback.']);
+end
 
 %% Run workflow
 workflow = run_research_workflow_v6( ...

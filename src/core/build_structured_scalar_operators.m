@@ -51,7 +51,7 @@ function ops = build_structured_scalar_operators(Metrics)
             x_xi^2,                 2.0 * x_xi * y_xi,                 y_xi^2; ...
             x_xi * x_eta,           x_xi * y_eta + x_eta * y_xi,      y_xi * y_eta; ...
             x_eta^2,                2.0 * x_eta * y_eta,              y_eta^2];
-        inv_M = inv(M); %#ok<MINV>
+        inv_M = M \ eye(3);
 
         coeff_xx(n, :) = inv_M(1, :);
         coeff_xy(n, :) = inv_M(2, :);

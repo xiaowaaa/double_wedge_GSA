@@ -179,6 +179,18 @@ function [config_out, report] = validate_config(config_in, varargin)
         config_out.mode_filter.near_wall_fraction = 0.15;
         added_defaults{end + 1} = 'mode_filter.near_wall_fraction'; %#ok<AGROW>
     end
+    if ~isfield(config_out.mode_filter, 'support_weighting')
+        config_out.mode_filter.support_weighting = 'component_energy';
+        added_defaults{end + 1} = 'mode_filter.support_weighting'; %#ok<AGROW>
+    end
+    if ~isfield(config_out.mode_filter, 'free_stream_eta_threshold')
+        config_out.mode_filter.free_stream_eta_threshold = 0.50;
+        added_defaults{end + 1} = 'mode_filter.free_stream_eta_threshold'; %#ok<AGROW>
+    end
+    if ~isfield(config_out.mode_filter, 'near_wall_support_threshold')
+        config_out.mode_filter.near_wall_support_threshold = 0.10;
+        added_defaults{end + 1} = 'mode_filter.near_wall_support_threshold'; %#ok<AGROW>
+    end
     if ~isfield(config_out.mode_filter, 'bubble_fraction_threshold')
         config_out.mode_filter.bubble_fraction_threshold = 0.05;
         added_defaults{end + 1} = 'mode_filter.bubble_fraction_threshold'; %#ok<AGROW>
@@ -234,6 +246,18 @@ function [config_out, report] = validate_config(config_in, varargin)
     if ~isfield(config_out.mode_filter, 'outlet_wall_fraction_threshold')
         config_out.mode_filter.outlet_wall_fraction_threshold = 0.20;
         added_defaults{end + 1} = 'mode_filter.outlet_wall_fraction_threshold'; %#ok<AGROW>
+    end
+    if ~isfield(config_out.mode_filter, 'plot_free_stream_fraction_threshold')
+        config_out.mode_filter.plot_free_stream_fraction_threshold = 0.50;
+        added_defaults{end + 1} = 'mode_filter.plot_free_stream_fraction_threshold'; %#ok<AGROW>
+    end
+    if ~isfield(config_out.mode_filter, 'plot_outlet_wall_fraction_threshold')
+        config_out.mode_filter.plot_outlet_wall_fraction_threshold = 0.35;
+        added_defaults{end + 1} = 'mode_filter.plot_outlet_wall_fraction_threshold'; %#ok<AGROW>
+    end
+    if ~isfield(config_out.mode_filter, 'plot_gallery_limit')
+        config_out.mode_filter.plot_gallery_limit = 4;
+        added_defaults{end + 1} = 'mode_filter.plot_gallery_limit'; %#ok<AGROW>
     end
     if ~isfield(config_out.mode_filter, 'pressure_free_stream_fraction_threshold')
         config_out.mode_filter.pressure_free_stream_fraction_threshold = 0.35;

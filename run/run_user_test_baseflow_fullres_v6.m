@@ -985,13 +985,17 @@ function local_write_summary_text(output_file, summary, top_modes)
         fprintf(fid, 'beta_terms_active: %d\n', summary.beta_assembly_audit.has_spanwise_terms);
         fprintf(fid, 'pressure_row_total_clipped: %d\n', summary.pressure_row_audit.total_clipped);
         fprintf(fid, 'pressure_row_total_zeroed: %d\n', summary.pressure_row_audit.total_zeroed);
-        if isfield(summary.pressure_closure_audit, 'rho_from_p_gamma_residual_max')
-            fprintf(fid, 'pressure_closure_rho_from_p_gamma_residual_max: %.6e\n', ...
-                summary.pressure_closure_audit.rho_from_p_gamma_residual_max);
+        if isfield(summary.pressure_closure_audit, 'rho_from_p_density_residual_max')
+            fprintf(fid, 'pressure_closure_rho_from_p_density_residual_max: %.6e\n', ...
+                summary.pressure_closure_audit.rho_from_p_density_residual_max);
         end
-        if isfield(summary.pressure_closure_audit, 'rho_from_T_identity_residual_max')
-            fprintf(fid, 'pressure_closure_rho_from_T_identity_residual_max: %.6e\n', ...
-                summary.pressure_closure_audit.rho_from_T_identity_residual_max);
+        if isfield(summary.pressure_closure_audit, 'pressure_scale_density_residual_max')
+            fprintf(fid, 'pressure_closure_pressure_scale_density_residual_max: %.6e\n', ...
+                summary.pressure_closure_audit.pressure_scale_density_residual_max);
+        end
+        if isfield(summary.pressure_closure_audit, 'linearized_eos_balance_residual_max')
+            fprintf(fid, 'pressure_closure_linearized_eos_balance_residual_max: %.6e\n', ...
+                summary.pressure_closure_audit.linearized_eos_balance_residual_max);
         end
         local_write_table_block(fid, 'Operator ablation table', summary.operator_ablation_table);
         local_write_named_fields(fid, 'Post-BC ablation audit', summary.post_bc_ablation_audit, { ...

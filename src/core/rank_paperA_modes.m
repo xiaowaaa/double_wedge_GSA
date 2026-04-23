@@ -7,6 +7,13 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
     num_modes = numel(EigVals);
     freq_info = interpret_sigma_eigenvalues(EigVals);
 
+    structural_only = false;
+    if isfield(data, 'BaseflowPhysicsAudit') && isstruct(data.BaseflowPhysicsAudit) && ...
+            isfield(data.BaseflowPhysicsAudit, 'structural_only_warning')
+        structural_only = logical(data.BaseflowPhysicsAudit.structural_only_warning);
+    end
+    thresholds = build_paperA_mode_filter_thresholds(Config, structural_only);
+
     mode_metrics = compute_mode_filter_metrics(EigVecs, Ny, Nx, data.RHO, Config.Cv_nd, ...
         'StateLayout', Config.state_layout, ...
         'NearWallFraction', Config.mode_filter.near_wall_fraction, ...
@@ -20,7 +27,8 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
         'OutletMask', masks.outlet, ...
         'OutletWallMask', masks.outlet_wall, ...
         'CornerMask', masks.corner, ...
-        'BadPointMask', masks.bad_point);
+        'BadPointMask', masks.bad_point, ...
+        'SupportWeighting', thresholds.support_weighting);
 
     ModeDiag = struct([]);
     farfield_ratio = zeros(num_modes, 1);
@@ -40,32 +48,19 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
         legacy_rejection_tags{k} = evaluate_mode_validity_tags(diag_k, struct());
     end
 
-    structural_only = false;
-    if isfield(data, 'BaseflowPhysicsAudit') && isstruct(data.BaseflowPhysicsAudit) && ...
-            isfield(data.BaseflowPhysicsAudit, 'structural_only_warning')
-        structural_only = logical(data.BaseflowPhysicsAudit.structural_only_warning);
-    end
-
-    checker_threshold_used = Config.mode_filter.checker_threshold;
-    bubble_threshold = local_get_mode_filter(Config, 'bubble_fraction_threshold', 0.05);
-    shock_threshold = local_get_mode_filter(Config, 'shock_fraction_threshold', 0.35);
-    shock_core_threshold = local_get_mode_filter(Config, 'shock_core_fraction_threshold', 0.15);
-    free_stream_threshold = local_get_mode_filter(Config, 'free_stream_fraction_threshold', 0.20);
-    outlet_threshold = local_get_mode_filter(Config, 'outlet_fraction_threshold', 0.35);
-    outlet_wall_threshold = local_get_mode_filter(Config, 'outlet_wall_fraction_threshold', 0.20);
-    bubble_core_threshold = local_get_mode_filter(Config, 'bubble_core_fraction_threshold', max(0.02, 0.50 * bubble_threshold));
-    bubble_support_threshold = local_get_mode_filter(Config, 'bubble_support_fraction_threshold', bubble_threshold);
-    pressure_checker_threshold_used = local_get_mode_filter(Config, 'pressure_checker_threshold', 1.5);
-    if structural_only && isfield(Config.mode_filter, 'checker_threshold_structural')
-        checker_threshold_used = Config.mode_filter.checker_threshold_structural;
-    end
-    if structural_only && isfield(Config.mode_filter, 'pressure_checker_threshold_structural')
-        pressure_checker_threshold_used = Config.mode_filter.pressure_checker_threshold_structural;
-    end
-    pressure_free_stream_threshold = local_get_mode_filter(Config, 'pressure_free_stream_fraction_threshold', 0.35);
-    pressure_outlet_threshold = local_get_mode_filter(Config, 'pressure_outlet_fraction_threshold', 0.40);
-    pressure_outlet_wall_threshold = local_get_mode_filter(Config, 'pressure_outlet_wall_fraction_threshold', outlet_wall_threshold);
-    pressure_shock_core_threshold = local_get_mode_filter(Config, 'pressure_shock_core_fraction_threshold', max(0.20, shock_core_threshold + 0.05));
+    checker_threshold_used = thresholds.checker_threshold_used;
+    bubble_core_threshold = thresholds.bubble_core_fraction_threshold;
+    bubble_support_threshold = thresholds.bubble_support_fraction_threshold;
+    shock_threshold = thresholds.shock_fraction_threshold;
+    shock_core_threshold = thresholds.shock_core_fraction_threshold;
+    free_stream_threshold = thresholds.free_stream_fraction_threshold;
+    outlet_threshold = thresholds.outlet_fraction_threshold;
+    outlet_wall_threshold = thresholds.outlet_wall_fraction_threshold;
+    pressure_checker_threshold_used = thresholds.pressure_checker_threshold_used;
+    pressure_free_stream_threshold = thresholds.pressure_free_stream_fraction_threshold;
+    pressure_outlet_threshold = thresholds.pressure_outlet_fraction_threshold;
+    pressure_outlet_wall_threshold = thresholds.pressure_outlet_wall_fraction_threshold;
+    pressure_shock_core_threshold = thresholds.pressure_shock_core_fraction_threshold;
 
     coupling = build_mode_coupling_audit(EigVecs, Ny, Nx, data, Config, masks, mode_metrics);
     mode_metrics.reference_component = coupling.reference_component;
@@ -79,7 +74,7 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
     mode_metrics.boundary_supported_flag = coupling.boundary_supported_flag;
     mode_metrics.compact_interior_flag = coupling.compact_interior_flag;
     is_sidharth_target = local_is_sidharth_target(Config);
-    stationary_threshold = local_get_mode_filter(Config, 'stationary_frequency_threshold', 1.0e-2);
+    stationary_threshold = thresholds.stationary_frequency_threshold;
     stationary_like_mask = abs(freq_info.freq_nd_signed) <= stationary_threshold;
     w_bubble_core_overlap = local_get_component_metric(mode_metrics, 'w', 'bubble_core_overlap', zeros(num_modes, 1));
     w_bubble_support_overlap = local_get_component_metric(mode_metrics, 'w', 'bubble_support_overlap', zeros(num_modes, 1));
@@ -118,7 +113,7 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
         ((mode_metrics.bubble_core_overlap > bubble_core_threshold) | ...
          (mode_metrics.bubble_support_overlap > bubble_support_threshold) | ...
          mode_metrics.u_peak_in_bubble) & ...
-        (mode_metrics.near_wall_energy_frac > 0.10) & ...
+        (mode_metrics.near_wall_energy_frac > thresholds.near_wall_support_threshold) & ...
         (mode_metrics.shock_energy_frac < shock_threshold) & ...
         (mode_metrics.shock_core_energy_frac < shock_core_threshold) & ...
         ~mode_metrics.u_peak_in_shock_core;
@@ -126,7 +121,7 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
     coupled_like_mask = ...
         mode_metrics.coupled_support_flag & ...
         (mode_metrics.bubble_support_overlap > max(0.03, 0.75 * bubble_support_threshold)) & ...
-        (mode_metrics.near_wall_energy_frac > 0.10) & ...
+        (mode_metrics.near_wall_energy_frac > thresholds.near_wall_support_threshold) & ...
         (mode_metrics.shock_energy_frac < max(0.60, shock_threshold + 0.15)) & ...
         (mode_metrics.shock_core_energy_frac < max(0.25, shock_core_threshold + 0.08)) & ...
         ~mode_metrics.boundary_supported_flag;
@@ -157,8 +152,8 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
     physical_plot_mask = plot_candidate_mask & ...
         physical_support_mask & ...
         pressure_quality_mask & ...
-        (mode_metrics.free_stream_energy_frac < 0.50) & ...
-        (mode_metrics.outlet_wall_energy_frac < max(0.35, outlet_wall_threshold + 0.10)) & ...
+        (mode_metrics.free_stream_energy_frac < thresholds.plot_free_stream_fraction_threshold) & ...
+        (mode_metrics.outlet_wall_energy_frac < thresholds.plot_outlet_wall_fraction_threshold) & ...
         ~mode_metrics.u_peak_in_outlet_wall & ...
         ~mode_metrics.boundary_supported_flag;
     plot_score = ...
@@ -223,10 +218,11 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
 
     n_keep = min(numel(order), max(4, round(Config.n_eigs)));
     order = order(1:n_keep);
+    plot_lead_candidate_mask = physical_plot_mask(order);
     selected_for_plots = false(n_keep, 1);
-    plot_pool = find(physical_plot_mask(order));
+    plot_pool = find(plot_lead_candidate_mask);
     if ~isempty(plot_pool)
-        plot_pool = plot_pool(1:min(4, numel(plot_pool)));
+        plot_pool = plot_pool(1:min(thresholds.plot_gallery_limit, numel(plot_pool)));
         selected_for_plots(plot_pool) = true;
     end
 
@@ -236,9 +232,12 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
     ranking.ModeDiag = ModeDiag(order);
     ranking.legacy_rejection_tags = legacy_rejection_tags(order);
     ranking.plot_candidate_mask = plot_candidate_mask(order);
+    ranking.plot_lead_candidate_mask = plot_lead_candidate_mask;
     ranking.publication_allowed = publication_allowed(order);
     ranking.selected_for_plots = selected_for_plots;
     ranking.selection_summary = selection_summary;
+    ranking.selection_summary.mode_filter_thresholds = thresholds;
+    ranking.selection_summary.support_weighting = thresholds.support_weighting;
     ranking.selection_summary.checker_threshold_used = checker_threshold_used;
     ranking.selection_summary.pressure_checker_threshold_used = pressure_checker_threshold_used;
     ranking.selection_summary.pressure_free_stream_threshold = pressure_free_stream_threshold;
@@ -248,6 +247,8 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
     ranking.selection_summary.num_plot_candidates = nnz(plot_candidate_mask);
     ranking.selection_summary.num_ranking_candidates = nnz(ranking_candidate_mask);
     ranking.selection_summary.num_physical_plot_candidates = nnz(physical_plot_mask);
+    ranking.selection_summary.num_plot_lead_candidates = nnz(physical_plot_mask);
+    ranking.selection_summary.plot_gallery_limit = thresholds.plot_gallery_limit;
     ranking.selection_summary.num_selected_modes = nnz(selected_for_plots);
     ranking.selection_summary.structural_only = structural_only;
     ranking.selection_summary.num_coupled_candidates = nnz(coupled_like_mask & plot_candidate_mask);
@@ -297,7 +298,7 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
         ranking.farfield_ratio, ranking.highfreq_ratio, ranking.metrics.physical_candidate_score, ...
         ranking.metrics.bubble_shock_phase_deg, ranking.metrics.bubble_shock_sync, ...
         ranking.metrics.family_label, ranking.plot_candidate_mask, ...
-        ranking.publication_allowed, ranking.selected_for_plots, ...
+        ranking.plot_lead_candidate_mask, ranking.publication_allowed, ranking.selected_for_plots, ...
         'VariableNames', {'mode_index', 'sigma_r', 'sigma_i', 'residual', ...
         'residual_active', 'residual_algebraic', 'residual_scaled', ...
         'freq_nd', 'freq_signed', 'bubble_overlap', 'bubble_core_overlap', ...
@@ -313,17 +314,7 @@ function ranking = rank_paperA_modes(EigVals, EigVecs, residuals, residuals_acti
         'u_peak_in_corner', 'u_peak_in_bad_point', ...
         'farfield_energy_ratio', 'highfreq_uv', 'physical_candidate_score', ...
         'bubble_shock_phase_deg', 'bubble_shock_sync', 'mode_family', 'plot_candidate', ...
-        'selected_for_publication', 'selected_for_plots'});
-end
-
-function value = local_get_mode_filter(Config, field_name, default_value)
-%LOCAL_GET_MODE_FILTER Return one mode-filter threshold with backward compatibility.
-
-    value = default_value;
-    if isfield(Config, 'mode_filter') && isstruct(Config.mode_filter) && ...
-            isfield(Config.mode_filter, field_name)
-        value = Config.mode_filter.(field_name);
-    end
+        'plot_lead_candidate', 'selected_for_publication', 'selected_for_plots'});
 end
 
 function metrics_out = local_slice_metrics(metrics_in, order)
@@ -355,7 +346,7 @@ function [ranking_candidate_mask, plot_candidate_mask, summary] = local_choose_c
         reason = '';
     elseif any(mask_res)
         ranking_candidate_mask = mask_res;
-        plot_candidate_mask = mask_res;
+        plot_candidate_mask = false(num_modes, 1);
         ranking_status = 'residual_only_fallback';
         reason = 'no mode passed the active checker threshold';
     else

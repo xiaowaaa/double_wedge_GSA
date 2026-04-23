@@ -16,13 +16,16 @@ function metrics = compute_mode_filter_metrics(EigVecs, Ny, Nx, RHO, Cv_nd, vara
     addParameter(p, 'OutletWallMask', [], @(x) isempty(x) || islogical(x) || isnumeric(x));
     addParameter(p, 'CornerMask', [], @(x) isempty(x) || islogical(x) || isnumeric(x));
     addParameter(p, 'BadPointMask', [], @(x) isempty(x) || islogical(x) || isnumeric(x));
+    addParameter(p, 'SupportWeighting', 'component_energy', @(x) ischar(x) || (isstring(x) && isscalar(x)));
     parse(p, varargin{:});
 
     num_modes = size(EigVecs, 2);
     layout = get_state_layout_info(p.Results.StateLayout);
     near_wall_rows = min(Ny, max(3, round(Ny * p.Results.NearWallFraction)));
+    support_weighting = char(string(p.Results.SupportWeighting));
 
     metrics = struct();
+    metrics.support_basis = support_weighting;
     metrics.wall_energy_frac = zeros(num_modes, 1);
     metrics.near_wall_energy_frac = zeros(num_modes, 1);
     metrics.bubble_overlap = zeros(num_modes, 1);
@@ -124,7 +127,7 @@ function metrics = compute_mode_filter_metrics(EigVecs, Ny, Nx, RHO, Cv_nd, vara
     for k = 1:num_modes
         q_mode = EigVecs(:, k);
         support_field = compute_mode_support_field(q_mode, Ny, Nx, layout.name, RHO, Cv_nd, ...
-            'Weighting', 'u_dominant');
+            'Weighting', support_weighting);
         total_energy = sum(support_field(:));
         if total_energy <= 1.0e-60
             total_energy = 1.0;

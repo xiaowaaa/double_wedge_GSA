@@ -576,3 +576,41 @@ Phase: Pressure-component checker gates for Sidharth disturbance plots
 - Validation after this batch:
   - targeted tests passed for mode-filter metrics, plot-lead selection, config defaults, pressure-row regularization, and reused Part4 summaries,
   - full `run_phase2_validation` passed end-to-end on 2026-04-23.
+
+Date: 2026-04-23
+Phase: Static review follow-up for descriptor recovery and plot fallback safety
+
+- Reviewed the external static-audit claims against the active code. The descriptor scaling recovery risk was already resolved in production: `solve_paperA_descriptor_modes.m` applies `EigVecs_all = Dc * EigVecs_scaled_all` before computing physical residuals and passing modes to Part4 ranking/extraction.
+- Confirmed that the active SAV path still uses the shock-localized wrapper around the fourth-difference filter and that no operator change was warranted from this review.
+- Tightened the one real plot-selection issue found during review: `residual_only_fallback` now remains diagnostic-only. Modes that pass residual but fail all active checker gates no longer populate `plot_candidate_mask` or `selected_for_plots`.
+- Corrected the plotted-lead selector score so `u_peak_in_bubble` is rewarded, matching the ranking score and the physical Sidharth/Paper-A plot intent.
+- Added/extended `test_plot_lead_selection` coverage for checker-failed residual fallback, full plot-lead candidate pools, and the `u'` bubble-peak score sign.
+- Validation after this batch:
+  - targeted plot-lead and mode-filter/config/pressure-row tests passed,
+  - full `run_phase2_validation` passed end-to-end after clearing a stale generated beta-scan test directory.
+
+Date: 2026-04-23
+Phase: Sidharth support-basis, phase-anchor, and lead-provenance alignment
+
+- Rechecked the production `v6` path against a focused static review of ranking, phase anchoring, lead provenance, validity-report thresholds, plot-lead pool truncation, and free-stream mask sourcing.
+- Confirmed that SAV and beta terms were not the main issue in this review; the remaining high-risk selection layer was inconsistent support/provenance semantics.
+- `compute_mode_filter_metrics.m` now defaults production support fractions to `component_energy` instead of fixed `u_dominant`, and saves the active support basis in the metrics. Component-specific diagnostics remain available for `u/v/w/T/p`.
+- Added `src/core/build_paperA_mode_filter_thresholds.m` so `rank_paperA_modes.m` and `Main_DoubleWedge_Part4_v6.m` consume the same resolved threshold bundle, including structural checker overrides, pressure gates, plot gates, near-wall support, gallery size, and free-stream fallback eta.
+- `choose_mode_phase_factor.m`, `Main_DoubleWedge_Part4_v6.m`, and `refresh_saved_paperA_outputs.m` now pass and record `ReferenceComponent`; `w`-reference Sidharth modes anchor phase on `w'` first instead of being forced through a `u'` anchor.
+- `Main_DoubleWedge_Part4_v6.m` now saves explicit `sorted_lead`, `plot_lead`, and `publication_lead` summaries, plus separate region-energy summaries and lead eigenvalue/frequency aliases. Legacy `leading_*` fields are retained only as plot-lead compatibility aliases to avoid mixing sorted and plotted semantics.
+- `rank_paperA_modes.m` now exposes `plot_lead_candidate_mask` for the full eligible plotted-lead pool, while `selected_for_plots` controls only the gallery subset. `select_paperA_plot_lead_index.m` uses that full pool and now rewards, rather than penalizes, `u_peak_in_bubble` during secondary lead selection.
+- `build_paperA_mode_masks.m` now consumes saved `BaseflowMasks.free_stream_mask` when present. `build_paperA_baseflow_context.m` writes this mask using configurable `mode_filter.free_stream_eta_threshold` instead of an untraceable hard-coded Part4 fallback.
+- Validation after this batch intentionally did not run a new `Part4_v6` eigensolve. Targeted unit/reuse tests and Part3-only smokes passed for config defaults, support metrics, phase anchors, mode masks, plot-lead selection, no-candidate plotting, reuse summaries, beta audit, baseflow Part3-only, beta-scan Part3-only, and Sidharth workflow Part3-only.
+
+Date: 2026-04-23
+Phase: Static review follow-up for beta viscous coupling and pressure-closure audits
+
+- Checked the external Claude review against the production `v6` chain and only changed the claims that were verifiably real in code or tests.
+- Fixed the confirmed spanwise viscous cross-coupling bug in `src/core/build_paperA_beta_terms_v6.m`: `Luw` and `Lvw` now use the Stokes-consistent `-(2/3) i beta mu_x` and `-(2/3) i beta mu_y` pointwise terms instead of the old `+(1/3)` coefficients.
+- Replaced the tautological pressure-closure diagnostics in `src/core/build_paperA_pressure_closure_audit_v6.m` with independent EOS-facing residuals and ratios that actually compare `rho_from_p`, `pressure_scale`, and `p0` back against `rho0`.
+- Replaced the small-matrix `inv(M)` call in `src/core/build_structured_scalar_operators.m` with `M \ eye(3)` and switched `src/core/preprocess_baseflow.m` from finite-difference Sutherland derivatives to analytic `dmu_dT` and `d2mu_dT2`.
+- Added regression coverage for the corrected beta-gradient coefficients and the analytic Sutherland derivatives, and updated the Part3 smoke and summary writer to consume the new pressure-closure audit fields.
+- Explicitly did not change `src/core/build_uniform_fd_matrix.m` row-2 second-derivative stencils or `src/core/apply_structured_bc_rows.m` outlet rows in this batch: both remain treated as design-contract questions, not confirmed implementation bugs, and the current FD boundary behavior is already locked by `test_fd_boundary_stencils`.
+- Validation after this batch:
+  - targeted tests passed for beta terms, pressure closure audits, analytic Sutherland derivatives, structured scalar operators, and Part3 beta-audit smoke,
+  - full `run_phase2_validation` passed end-to-end on 2026-04-23 after re-running with `setup_double_wedge_paths('IncludeTests', true)`.

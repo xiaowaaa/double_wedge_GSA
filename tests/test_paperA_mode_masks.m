@@ -22,10 +22,13 @@ function test_paperA_mode_masks()
     shock_mask(6:9, 14:17) = true;
     shock_raw = shock_mask;
     shock_raw(1, 15) = true;
+    free_stream_mask = false(Ny, Nx);
+    free_stream_mask(end-1:end, :) = true;
     data.BaseflowMasks = struct( ...
         'shock_mask', false(Ny, Nx), ...
         'corner_mask', corner_mask, ...
-        'eos_bad_point_mask', bad_point_mask);
+        'eos_bad_point_mask', bad_point_mask, ...
+        'free_stream_mask', free_stream_mask);
     data.ShockInfo = struct( ...
         'shock_mask', shock_mask, ...
         'shock_raw', shock_raw);
@@ -37,7 +40,8 @@ function test_paperA_mode_masks()
 
     assert(any(masks.bubble(:)), 'Bubble mask should detect the U<0 patch.');
     assert(nnz(masks.near_wall(1:3, :)) > 0, 'Near-wall mask should cover the south-edge band.');
-    assert(~any(masks.free_stream(1:5, :), 'all'), 'Free-stream mask should exclude the lowest part of the domain.');
+    assert(isequal(masks.free_stream, free_stream_mask), ...
+        'Part4 masks should consume the saved BaseflowMasks.free_stream_mask when present.');
     assert(all(size(masks.shock) == [Ny, Nx]), 'Shock mask size should match the working grid.');
     assert(~masks.shock_core(1, 15), 'Shock-core mask must stay inside the protected Part3 shock band.');
     assert(masks.shock_core(6, 15), 'Shock-core mask should preserve valid interior shock cells.');
@@ -45,6 +49,13 @@ function test_paperA_mode_masks()
     assert(all(~masks.outlet_wall(~masks.near_wall)), 'Outlet-wall mask must stay inside the near-wall strip.');
     assert(isequal(masks.corner, corner_mask), 'Corner mask should pass through from BaseflowMasks.');
     assert(isequal(masks.bad_point, bad_point_mask), 'EOS bad-point mask should pass through from BaseflowMasks.');
+
+    data_fallback = data;
+    data_fallback.BaseflowMasks = rmfield(data_fallback.BaseflowMasks, 'free_stream_mask');
+    Config.mode_filter.free_stream_eta_threshold = 0.75;
+    masks_fallback = build_paperA_mode_masks(data_fallback, Config, Ny, Nx);
+    assert(~any(masks_fallback.free_stream(Y < 0.75)), ...
+        'Fallback free-stream mask should use Config.mode_filter.free_stream_eta_threshold.');
 
     fprintf('[test_paperA_mode_masks] PASS\n');
 end

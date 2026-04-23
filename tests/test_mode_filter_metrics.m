@@ -20,6 +20,7 @@ function test_mode_filter_metrics()
     q_bubble = zeros(layout.nvar * Ny * Nx, 1);
     q_checker = zeros(layout.nvar * Ny * Nx, 1);
     q_pressure_checker = zeros(layout.nvar * Ny * Nx, 1);
+    q_mixed_reference = zeros(layout.nvar * Ny * Nx, 1);
     q_bubble(1:layout.nvar:end) = bubble(:);
     q_bubble(2:layout.nvar:end) = 0.4 * bubble(:);
     q_bubble(3:layout.nvar:end) = 0.6 * bubble(:);
@@ -27,8 +28,10 @@ function test_mode_filter_metrics()
     q_checker(1:layout.nvar:end) = checker_amp(:);
     q_pressure_checker(1:layout.nvar:end) = bubble(:);
     q_pressure_checker(5:layout.nvar:end) = checker_amp(:);
+    q_mixed_reference(1:layout.nvar:end) = 0.8 * double(Y > 0.65);
+    q_mixed_reference(3:layout.nvar:end) = 8.0 * bubble(:);
 
-    metrics = compute_mode_filter_metrics([q_bubble, q_checker, q_pressure_checker], Ny, Nx, RHO, Cv_nd, ...
+    metrics = compute_mode_filter_metrics([q_bubble, q_checker, q_pressure_checker, q_mixed_reference], Ny, Nx, RHO, Cv_nd, ...
         'StateLayout', layout.name, ...
         'NearWallFraction', 0.15, ...
         'BubbleMask', bubble > 0.2);
@@ -55,6 +58,10 @@ function test_mode_filter_metrics()
         'A p''-only checker tail should be visible in pressure-specific diagnostics.');
     assert(metrics.checker_ratio(3) >= metrics.p_checker_ratio(3), ...
         'The total checker ratio should include p'' checker contamination.');
+    assert(strcmp(metrics.support_basis, 'component_energy'), ...
+        'Production support fractions should default to component_energy, not u_dominant.');
+    assert(metrics.bubble_overlap(4) > 0.30, ...
+        'A w'' bubble mode with unrelated u'' support should still score as bubble-supported.');
 
     fprintf('[test_mode_filter_metrics] PASS\n');
 end

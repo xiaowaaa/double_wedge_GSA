@@ -16,12 +16,13 @@ function [BaseflowPhysicsAudit, GeometryAudit, BaseflowMasks] = ...
     shock_percentile = local_get_nested(Config, {'semi_artificial_viscosity', 'shock_percentile'}, 85.0);
     near_wall_fraction = local_get_nested(Config, {'mode_filter', 'near_wall_fraction'}, 0.15);
     outlet_fraction = local_get_nested(Config, {'mode_filter', 'outlet_fraction'}, 0.12);
+    free_stream_eta_threshold = local_get_nested(Config, {'mode_filter', 'free_stream_eta_threshold'}, 0.50);
     near_wall_rows = min(Ny, max(3, round(Ny * near_wall_fraction)));
     near_wall_mask = false(Ny, Nx);
     near_wall_mask(1:near_wall_rows, :) = true;
     outlet_mask = X >= (x_max - outlet_fraction * Lx);
     outlet_wall_mask = outlet_mask & near_wall_mask;
-    free_stream_mask = local_build_free_stream_mask(Y);
+    free_stream_mask = local_build_free_stream_mask(Y, free_stream_eta_threshold);
 
     grad_rho = hypot(dX.rhox, dX.rhoy);
     shock_threshold = local_percentile(grad_rho(:), shock_percentile);
@@ -109,6 +110,7 @@ function [BaseflowPhysicsAudit, GeometryAudit, BaseflowMasks] = ...
     BaseflowMasks.outlet_wall_mask = outlet_wall_mask;
     BaseflowMasks.corner_mask = corner_mask;
     BaseflowMasks.free_stream_mask = free_stream_mask;
+    BaseflowMasks.free_stream_eta_threshold = free_stream_eta_threshold;
     BaseflowMasks.boundary_masks = BoundaryMasks;
 end
 
@@ -220,8 +222,8 @@ function [corner_mask, anchor] = local_build_corner_mask(X, Y, Config)
     anchor = struct('x', x_anchor, 'y', y_anchor, 'col', i_hinge, 'radius', radius);
 end
 
-function free_stream_mask = local_build_free_stream_mask(Y)
-%LOCAL_BUILD_FREE_STREAM_MASK Build one wall-relative upper-half mask.
+function free_stream_mask = local_build_free_stream_mask(Y, eta_threshold)
+%LOCAL_BUILD_FREE_STREAM_MASK Build one configurable wall-relative upper mask.
 
     [Ny, Nx] = size(Y);
     free_stream_mask = false(Ny, Nx);
@@ -230,7 +232,7 @@ function free_stream_mask = local_build_free_stream_mask(Y)
     height = max(top_y - wall_y, eps);
     for i = 1:Nx
         eta = (Y(:, i) - wall_y(i)) / height(i);
-        free_stream_mask(:, i) = eta >= 0.50;
+        free_stream_mask(:, i) = eta >= eta_threshold;
     end
 end
 

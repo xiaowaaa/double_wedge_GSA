@@ -3,12 +3,14 @@ function base = preprocess_baseflow(base, cfg)
 
     S = cfg.flow.Sutherland_nd;
     T = base.T;
-    mu = ((1 + S) .* T .^ 1.5) ./ max(T + S, eps);
-    h = 1.0e-6;
-    mu_p = ((1 + S) .* (T + h) .^ 1.5) ./ max(T + h + S, eps);
-    mu_m = ((1 + S) .* max(T - h, 0) .^ 1.5) ./ max(max(T - h, 0) + S, eps);
-    dmu_dT = (mu_p - mu_m) / (2 * h);
-    d2mu_dT2 = (mu_p - 2 * mu + mu_m) / (h^2);
+    T_pos = max(T, 0.0);
+    T_eps = max(T_pos, eps);
+    denom = max(T_pos + S, eps);
+
+    mu = ((1 + S) .* T_pos .^ 1.5) ./ denom;
+    dmu_dT = 0.5 * (1 + S) .* sqrt(T_pos) .* (T_pos + 3.0 * S) ./ max(denom .^ 2, eps);
+    d2mu_dT2 = -0.25 * (1 + S) .* (T_pos .^ 2 + 6.0 * S .* T_pos - 3.0 * S^2) ./ ...
+        max(sqrt(T_eps) .* denom .^ 3, eps);
 
     R_nd = 1.0 / (cfg.flow.gamma * cfg.flow.Ma_inf^2);
     eos_ref = R_nd * base.rho .* base.T;

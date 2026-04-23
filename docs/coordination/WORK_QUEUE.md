@@ -4,8 +4,8 @@ Last updated: 2026-04-23
 
 ## Next
 
-- Rerun or refresh a `270 x 128` structural `Part4` case with the new pressure-component plot gates and verify whether the selected result is now `no_physical_plot_candidate` or a genuinely bubble-centred lead.
-- On the intended `812 x 382` path, inspect `p_checker_ratio`, `p_free_stream_overlap`, `p_outlet_wall_overlap`, and `p_shock_core_overlap` alongside the existing bubble/shock support metrics before accepting any plotted Sidharth-style disturbance cloud.
+- Rerun or refresh a `270 x 128` structural `Part4` case with the new component-energy support basis, reference-component phase anchors, pressure-component plot gates, and split lead provenance; verify whether the selected result is now `no_physical_plot_candidate` or a genuinely bubble-centred `w`-reference lead.
+- On the intended `812 x 382` path, inspect `reference_component`, phase-anchor component, `p_checker_ratio`, `p_free_stream_overlap`, `p_outlet_wall_overlap`, `p_shock_core_overlap`, and the explicit `sorted_lead` / `plot_lead` / `publication_lead` records before accepting any plotted Sidharth-style disturbance cloud.
 - Use the new `Part3_Results.mat` audit fields `PressureRowAudit`, `BetaAssemblyAudit`, and `PressureClosureAudit` on the user-side `812 x 382`, `beta = 8` path before launching another full `Part4_v6` solve.
 - Use `run_beta_scan_v6(...)` for the first structured `beta` sweep once the cheap `Part3` audits look sane, so branch continuity and leading-mode family changes are saved automatically under one scan root.
 - Use `run_resolvent_gain_scan_v6(...)` whenever the EVP remains globally stable or shock-dominated, so amplifier behavior is not forced into an eigenvalue-only interpretation.
