@@ -1,0 +1,198 @@
+function Main_DoubleWedge_Part1_v6(varargin)
+%MAIN_DOUBLEWEDGE_PART1_V6 Read and preprocess the baseflow for the v6 chain.
+
+    p = inputParser;
+    p.FunctionName = 'Main_DoubleWedge_Part1_v6';
+    addParameter(p, 'BaseflowFile', '', @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    addParameter(p, 'StrideX', 2, @(x) isnumeric(x) && isscalar(x) && x >= 1);
+    addParameter(p, 'StrideY', 2, @(x) isnumeric(x) && isscalar(x) && x >= 1);
+    addParameter(p, 'ExpectedDims', [], @(x) isempty(x) || (isnumeric(x) && numel(x) == 2));
+    addParameter(p, 'TopType', 'inlet', @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    addParameter(p, 'UseSponge', false, @(x) islogical(x) || isnumeric(x));
+    addParameter(p, 'Beta', 0.0, @(x) isnumeric(x) && isscalar(x) && isfinite(x));
+    addParameter(p, 'NEigs', 80, @(x) isnumeric(x) && isscalar(x) && x >= 1);
+    addParameter(p, 'SigmaShift', 0.05 + 0.02i, @(x) isnumeric(x) && isscalar(x));
+    addParameter(p, 'SigmaTriplet', [], @(x) isempty(x) || isnumeric(x));
+    addParameter(p, 'KrylovDimensionFloor', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
+    addParameter(p, 'KrylovDimensionCap', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
+    addParameter(p, 'BenchmarkProfile', 'sidharth2018_code_correction_v1', ...
+        @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    parse(p, varargin{:});
+
+    setup_double_wedge_paths();
+
+    cfg = config_case();
+    cfg.benchmark = get_double_wedge_benchmark_profile(char(string(p.Results.BenchmarkProfile)));
+    if strlength(string(p.Results.BaseflowFile)) > 0
+        cfg.io.baseflow_file = char(string(p.Results.BaseflowFile));
+    end
+    cfg.reader.stride_x = round(p.Results.StrideX);
+    cfg.reader.stride_y = round(p.Results.StrideY);
+    if ~isempty(p.Results.ExpectedDims)
+        cfg.reader.expected_dims = double(p.Results.ExpectedDims(:)).';
+    end
+    cfg.bc.top_type = char(string(p.Results.TopType));
+
+    base = read_phenglei_baseflow(cfg);
+    base = preprocess_baseflow(base, cfg);
+    Config = local_make_v6_config(cfg, base, p.Results);
+
+    X = base.x; %#ok<NASGU>
+    Y = base.y; %#ok<NASGU>
+    U = base.u; %#ok<NASGU>
+    V = base.v; %#ok<NASGU>
+    W = base.w; %#ok<NASGU>
+    TT = base.T; %#ok<NASGU>
+    RHO = base.rho; %#ok<NASGU>
+    PP = base.p; %#ok<NASGU>
+    MU = base.derived.mu; %#ok<NASGU>
+    dMU_dT = base.derived.dmu_dT; %#ok<NASGU>
+    d2MU_dT2 = base.derived.d2mu_dT2; %#ok<NASGU>
+    BaseValidation = base.validation; %#ok<NASGU>
+    Nx = base.Nx; %#ok<NASGU>
+    Ny = base.Ny; %#ok<NASGU>
+
+    save('Part1_Results.mat', ...
+        'Config', 'X', 'Y', 'U', 'V', 'W', 'TT', 'RHO', 'PP', ...
+        'MU', 'dMU_dT', 'd2MU_dT2', 'BaseValidation', 'Nx', 'Ny', '-v7.3');
+end
+
+function Config = local_make_v6_config(cfg, base, opts)
+%LOCAL_MAKE_V6_CONFIG Build the v6 primitive-five production config.
+
+    use_sidharth_regularization_defaults = ...
+        strcmpi(char(string(cfg.benchmark.target_benchmark)), 'Sidharth2018');
+
+    Config = struct();
+    Config.Ma_inf = cfg.flow.Ma_inf;
+    Config.Re_inf = cfg.flow.Re_inf;
+    Config.T_inf = cfg.flow.T_inf;
+    Config.gamma = cfg.flow.gamma;
+    Config.Pr = cfg.flow.Pr;
+    Config.Cv_nd = cfg.flow.Cv;
+    Config.S_nd = cfg.flow.Sutherland_nd;
+    Config.T_wall_nd = cfg.flow.T_wall / cfg.flow.T_inf;
+
+    Config.Nx_raw = size(base.raw.x, 2);
+    Config.Ny_raw = size(base.raw.x, 1);
+    Config.Nvar = base.metadata.num_vars_read;
+    Config.required_input_columns = base.metadata.required_num_vars;
+    Config.n_header = cfg.reader.n_header_hint;
+    Config.ds_x = base.ds_x;
+    Config.ds_y = base.ds_y;
+    Config.Nx = base.Nx;
+    Config.Ny = base.Ny;
+
+    Config.x_hinge = cfg.geometry.x_hinge;
+    Config.n_eigs = round(opts.NEigs);
+    Config.krylov_dimension_floor = 120;
+    Config.krylov_dimension_cap = 180;
+    if ~isempty(opts.KrylovDimensionFloor)
+        Config.krylov_dimension_floor = round(opts.KrylovDimensionFloor);
+    end
+    if ~isempty(opts.KrylovDimensionCap)
+        Config.krylov_dimension_cap = round(opts.KrylovDimensionCap);
+    end
+    Config.descriptor_solver = struct( ...
+        'large_system_threshold', 4.0e5, ...
+        'huge_system_threshold', 1.0e6, ...
+        'max_total_modes_large', 18, ...
+        'max_total_modes_huge', 8, ...
+        'max_shifts_large', 3, ...
+        'max_shifts_huge', 1, ...
+        'max_modes_per_shift_large', 6, ...
+        'max_modes_per_shift_huge', 3, ...
+        'min_modes_per_shift', 2, ...
+        'krylov_floor_large', 24, ...
+        'krylov_cap_large', 48, ...
+        'krylov_floor_huge', 10, ...
+        'krylov_cap_huge', 20);
+    Config.sigma = opts.SigmaShift;
+    if isempty(opts.SigmaTriplet)
+        Config.sigma_triplet = [0.00 + 0.005i, 0.00 + 0.010i, 0.00 + 0.020i, 0.02 + 0.020i, 0.05 + 0.020i];
+    else
+        Config.sigma_triplet = opts.SigmaTriplet(:).';
+    end
+    Config.beta = opts.Beta;
+    Config.state_layout = 'primitive5_u_v_w_T_p';
+    Config.operator_model = 'paperA_primitive5_direct_v6';
+    Config.allow_placeholder_operator = false;
+    Config.use_physical_filter = false;
+    Config.plot_all_mode_u_bubble = false;
+    Config.plot_contract = 'paperA_reference_mainset_v1';
+    Config.plot_debug_fields = false;
+    Config.plot_debug_mode_diagnosis = false;
+    Config.plot_wall_relative_figures = false;
+    Config.analysis = struct('compute_adjoint_lead', false);
+
+    Config.use_sponge = logical(opts.UseSponge);
+    Config.sponge_sigma_max = 0.0;
+    Config.sponge_farfield_frac = 0.0;
+    Config.sponge_outlet_frac = 0.0;
+    Config.sponge_power = 4;
+
+    % The Sidharth code-correction route keeps only light SAV on by default.
+    Config.use_semi_artificial_viscosity = true;
+    Config.semi_artificial_viscosity = struct( ...
+        'epsilon', 5.0e-2, ...
+        'shock_percentile', 85.0, ...
+        'dilation_steps', 5, ...
+        'near_wall_fraction', 0.10);
+
+    % Shock-source and pressure-row fixes remain available for ablations.
+    Config.use_shock_source_regularization = ~use_sidharth_regularization_defaults;
+    Config.shock_source_regularization = struct( ...
+        'clip_percentile', 95.0, ...
+        'dmu_clip_percentile', 95.0, ...
+        'zero_second_derivatives_in_shock', true, ...
+        'suppress_viscosity_gradient_terms_in_shock', true);
+    Config.pressure_row_regularization = struct( ...
+        'enabled', ~use_sidharth_regularization_defaults, ...
+        'gradient_clip_percentile', 95.0, ...
+        'divergence_clip_percentile', 95.0, ...
+        'suppress_pressure_gradients_in_shock', false, ...
+        'suppress_divergence_in_shock', false);
+    Config.epsilon_art = Config.semi_artificial_viscosity.epsilon;
+
+    Config.bc_topology = 'structured_edges';
+    Config.boundary_map = struct( ...
+        'south', 'mixed_symmetry_wall', ...
+        'north', char(string(cfg.bc.top_type)), ...
+        'west', char(string(cfg.bc.left_type)), ...
+        'east', char(string(cfg.bc.right_type)));
+    Config.mode_filter = struct( ...
+        'residual_threshold', 1.0e-4, ...
+        'wall_fraction_threshold', 0.05, ...
+        'checker_threshold', 5.0, ...
+        'checker_threshold_structural', 20.0, ...
+        'pressure_checker_threshold', 1.5, ...
+        'pressure_checker_threshold_structural', 1.5, ...
+        'near_wall_fraction', 0.15, ...
+        'bubble_fraction_threshold', 0.05, ...
+        'bubble_core_fraction_threshold', 0.03, ...
+        'bubble_support_fraction_threshold', 0.05, ...
+        'shock_fraction_threshold', 0.35, ...
+        'shock_core_fraction_threshold', 0.15, ...
+        'free_stream_fraction_threshold', 0.20, ...
+        'outlet_fraction', 0.12, ...
+        'outlet_fraction_threshold', 0.35, ...
+        'outlet_wall_fraction_threshold', 0.20, ...
+        'pressure_free_stream_fraction_threshold', 0.35, ...
+        'pressure_outlet_fraction_threshold', 0.40, ...
+        'pressure_outlet_wall_fraction_threshold', 0.20, ...
+        'pressure_shock_core_fraction_threshold', 0.20);
+    Config.debug = struct( ...
+        'strict_mode_ranking', true, ...
+        'fail_on_no_strict_mode', false, ...
+        'save_debug_field_figures', false, ...
+        'save_debug_mode_diagnosis', false);
+
+    Config.benchmark_profile = cfg.benchmark.name;
+    Config.target_benchmark = cfg.benchmark.target_benchmark;
+    Config.benchmark = cfg.benchmark;
+    Config.reference_scales = cfg.benchmark.reference_scales;
+    Config.structural_only = logical(cfg.benchmark.current_stage.structural_only);
+    Config.plot_contract = cfg.benchmark.primary_plot_contract;
+    Config.secondary_plot_contract = cfg.benchmark.secondary_plot_contract;
+    Config.datafile = cfg.io.baseflow_file;
+end

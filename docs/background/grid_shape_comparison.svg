@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="950" viewBox="0 0 1600 950">
+  <defs>
+    <style>
+      .bg { fill: #fbfaf6; }
+      .panel { fill: #ffffff; stroke: #a8b3ba; stroke-width: 2.5; rx: 18; ry: 18; }
+      .domain { fill: #eef4f7; stroke: #6c7b86; stroke-width: 3; }
+      .grid { fill: none; stroke: #93a7b3; stroke-width: 1.5; opacity: 0.95; }
+      .grid2 { fill: none; stroke: #7e949f; stroke-width: 2.1; opacity: 0.95; }
+      .wall { fill: none; stroke: #111; stroke-width: 5; }
+      .boundary { fill: none; stroke: #111; stroke-width: 4; }
+      .refine { fill: #ffd8b8; opacity: 0.55; stroke: #d67d1b; stroke-width: 2; stroke-dasharray: 10 8; }
+      .text { font-family: "Times New Roman", serif; font-size: 26px; fill: #1a1a1a; }
+      .small { font-family: "Times New Roman", serif; font-size: 22px; fill: #1f1f1f; }
+      .tiny { font-family: "Times New Roman", serif; font-size: 20px; fill: #303030; }
+      .title { font-family: "Times New Roman", serif; font-size: 34px; font-weight: bold; fill: #101010; }
+      .title2 { font-family: "Times New Roman", serif; font-size: 30px; font-weight: bold; fill: #101010; }
+      .good { fill: #1f6f3d; font-weight: bold; }
+      .bad { fill: #9c2f2f; font-weight: bold; }
+      .neutral { fill: #2f4e7a; font-weight: bold; }
+      .pt { fill: #b52323; stroke: #fff; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="950"/>
+  <text class="title" x="420" y="60">Which Grid Shape Is Better For Reproducing Sidharth 2018?</text>
+
+  <!-- Left panel -->
+  <rect class="panel" x="50" y="95" width="710" height="790"/>
+  <text class="title2 good" x="170" y="145">A. Sidharth-Type Validation Grid</text>
+
+  <!-- Left domain -->
+  <path class="domain" d="M 120 640 L 350 590 L 500 535 L 640 535 L 690 240 L 95 240 Z"/>
+  <path class="refine" d="M 280 610 L 430 570 L 565 520 L 550 380 L 395 380 L 270 430 Z"/>
+
+  <!-- Left grid vertical-ish -->
+  <path class="grid" d="M 105 265 Q 128 340 120 640"/>
+  <path class="grid" d="M 150 258 Q 170 330 164 631"/>
+  <path class="grid" d="M 195 252 Q 212 320 209 621"/>
+  <path class="grid" d="M 240 248 Q 255 310 254 612"/>
+  <path class="grid2" d="M 285 245 Q 300 300 300 601"/>
+  <path class="grid2" d="M 330 243 Q 345 292 346 590"/>
+  <path class="grid2" d="M 375 241 Q 389 285 393 579"/>
+  <path class="grid2" d="M 420 240 Q 432 278 441 564"/>
+  <path class="grid2" d="M 465 240 Q 474 272 490 549"/>
+  <path class="grid" d="M 510 240 Q 516 268 530 535"/>
+  <path class="grid" d="M 555 240 Q 560 265 572 535"/>
+  <path class="grid" d="M 600 240 Q 605 262 608 535"/>
+  <path class="grid" d="M 645 240 Q 648 255 645 535"/>
+
+  <!-- Left grid horizontal-ish -->
+  <path class="grid" d="M 103 585 Q 270 575 662 470"/>
+  <path class="grid" d="M 108 555 Q 285 547 668 440"/>
+  <path class="grid" d="M 113 525 Q 300 518 674 410"/>
+  <path class="grid2" d="M 118 495 Q 320 492 678 383"/>
+  <path class="grid2" d="M 123 465 Q 343 468 682 356"/>
+  <path class="grid2" d="M 128 435 Q 367 442 686 330"/>
+  <path class="grid" d="M 133 405 Q 392 417 688 306"/>
+  <path class="grid" d="M 138 375 Q 420 392 689 282"/>
+  <path class="grid" d="M 143 345 Q 448 366 690 260"/>
+  <path class="grid" d="M 148 315 Q 478 340 690 245"/>
+
+  <path class="wall" d="M 120 640 L 350 590 L 500 535 L 640 535"/>
+  <path class="boundary" d="M 95 240 L 690 240"/>
+  <path class="boundary" d="M 95 240 L 120 640"/>
+  <path class="boundary" d="M 640 535 L 690 240"/>
+
+  <circle class="pt" cx="120" cy="640" r="6"/>
+  <circle class="pt" cx="350" cy="590" r="6"/>
+  <circle class="pt" cx="500" cy="535" r="6"/>
+  <circle class="pt" cx="640" cy="535" r="6"/>
+
+  <text class="small" x="170" y="706">full-wall bottom boundary</text>
+  <text class="small" x="222" y="733">50 + 32 + 40 mm</text>
+  <text class="small" x="245" y="273">freestream / top</text>
+  <text class="small" x="68" y="455" transform="rotate(-90 68 455)">inlet</text>
+  <text class="small" x="700" y="410" transform="rotate(-90 700 410)">outlet</text>
+  <text class="small" x="330" y="402">corner / separation /</text>
+  <text class="small" x="350" y="428">reattachment refinement</text>
+
+  <text class="text good" x="90" y="785">Better for reproducing Sidharth:</text>
+  <text class="tiny" x="105" y="815">- same wall topology as the literature case</text>
+  <text class="tiny" x="105" y="842">- has the second ramp and shoulder explicitly</text>
+  <text class="tiny" x="105" y="869">- refinement is focused on separation bubble physics</text>
+
+  <!-- Right panel -->
+  <rect class="panel" x="840" y="95" width="710" height="790"/>
+  <text class="title2 neutral" x="1000" y="145">B. Your Current 812 x 382-Type Grid</text>
+
+  <!-- Right domain -->
+  <path class="domain" d="M 910 640 L 1085 640 L 1220 585 L 1435 585 L 1480 230 L 875 230 Z"/>
+  <path class="refine" d="M 1160 600 L 1295 565 L 1450 560 L 1455 365 L 1230 365 L 1120 430 Z"/>
+
+  <!-- Right grid vertical-ish -->
+  <path class="grid" d="M 882 255 Q 900 330 910 640"/>
+  <path class="grid" d="M 930 250 Q 945 325 952 640"/>
+  <path class="grid" d="M 978 246 Q 990 320 994 640"/>
+  <path class="grid" d="M 1026 242 Q 1035 316 1038 639"/>
+  <path class="grid" d="M 1074 239 Q 1083 315 1084 637"/>
+  <path class="grid2" d="M 1122 236 Q 1132 309 1130 621"/>
+  <path class="grid2" d="M 1170 233 Q 1180 301 1178 603"/>
+  <path class="grid2" d="M 1218 231 Q 1228 292 1226 584"/>
+  <path class="grid2" d="M 1266 230 Q 1275 286 1273 584"/>
+  <path class="grid2" d="M 1314 230 Q 1321 279 1320 585"/>
+  <path class="grid" d="M 1362 230 Q 1368 270 1367 585"/>
+  <path class="grid" d="M 1410 230 Q 1415 260 1414 585"/>
+  <path class="grid" d="M 1458 230 Q 1460 246 1458 585"/>
+
+  <!-- Right grid horizontal-ish -->
+  <path class="grid" d="M 887 600 Q 1080 600 1468 497"/>
+  <path class="grid" d="M 892 565 Q 1095 568 1472 462"/>
+  <path class="grid" d="M 897 530 Q 1110 536 1474 426"/>
+  <path class="grid2" d="M 902 495 Q 1130 505 1477 392"/>
+  <path class="grid2" d="M 907 460 Q 1155 476 1478 357"/>
+  <path class="grid2" d="M 912 425 Q 1180 448 1479 323"/>
+  <path class="grid" d="M 917 390 Q 1210 420 1480 290"/>
+  <path class="grid" d="M 922 355 Q 1240 392 1480 260"/>
+  <path class="grid" d="M 927 320 Q 1275 360 1480 240"/>
+
+  <!-- Mixed bottom boundary -->
+  <path class="wall" d="M 1085 640 L 1220 585 L 1435 585"/>
+  <path class="boundary" d="M 910 640 L 1085 640"/>
+  <path class="boundary" d="M 875 230 L 1480 230"/>
+  <path class="boundary" d="M 875 230 L 910 640"/>
+  <path class="boundary" d="M 1435 585 L 1480 230"/>
+
+  <circle class="pt" cx="1085" cy="640" r="6"/>
+  <circle class="pt" cx="1220" cy="585" r="6"/>
+
+  <text class="small" x="907" y="672">symmetry-like upstream bottom</text>
+  <text class="small" x="1190" y="617">wall downstream bottom</text>
+  <text class="small" x="1110" y="262">top = inlet for your current case</text>
+  <text class="small" x="846" y="460" transform="rotate(-90 846 460)">inlet</text>
+  <text class="small" x="1490" y="410" transform="rotate(-90 1490 410)">outlet</text>
+  <text class="small" x="1208" y="340">real-case refinement</text>
+  <text class="small" x="1218" y="366">for your own geometry</text>
+
+  <text class="text bad" x="880" y="785">Less suitable for reproducing Sidharth:</text>
+  <text class="tiny" x="895" y="815">- bottom boundary topology is a different physical problem</text>
+  <text class="tiny" x="895" y="842">- does not match the literature wall shape and shoulder setup</text>
+  <text class="tiny" x="895" y="869">- better kept for your production / real-case solver work</text>
+
+  <!-- Bottom summary -->
+  <text class="title2" x="420" y="925">Use A for literature validation. Keep B for your own 812 x 382 production case.</text>
+</svg>

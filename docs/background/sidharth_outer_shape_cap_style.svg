@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="980" viewBox="0 0 1500 980">
+  <defs>
+    <style>
+      .bg { fill: #fbf9f4; }
+      .panel { fill: #ffffff; stroke: #aab5bc; stroke-width: 2.5; rx: 20; ry: 20; }
+      .domain { fill: #eff4f7; stroke: #6f808c; stroke-width: 3; }
+      .outer { fill: none; stroke: #2d59c7; stroke-width: 5; }
+      .wall { fill: none; stroke: #c0392b; stroke-width: 5; }
+      .grid { fill: none; stroke: #97a8b3; stroke-width: 1.4; opacity: 0.9; }
+      .grid2 { fill: none; stroke: #7c909d; stroke-width: 2; opacity: 0.9; }
+      .refine { fill: #ffd8b6; opacity: 0.50; stroke: #d27a1c; stroke-width: 2; stroke-dasharray: 10 8; }
+      .title { font-family: "Times New Roman", serif; font-size: 34px; font-weight: bold; fill: #111; }
+      .text { font-family: "Times New Roman", serif; font-size: 24px; fill: #1d1d1d; }
+      .small { font-family: "Times New Roman", serif; font-size: 22px; fill: #2b2b2b; }
+      .tiny { font-family: "Times New Roman", serif; font-size: 20px; fill: #383838; }
+      .pt { fill: #b12222; stroke: #fff; stroke-width: 2; }
+      .guide { fill: none; stroke: #444; stroke-width: 2.2; marker-start: url(#arrow); marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#444"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1500" height="980"/>
+  <rect class="panel" x="50" y="80" width="1400" height="860"/>
+
+  <text class="title" x="305" y="135">Recommended Cap-Shaped Outer Boundary For Reproducing Sidharth 2018</text>
+
+  <!-- Wall points for 12-20 case -->
+  <!-- P0 (240,760), P1 (610,680), P2 (850,592), P3 (1170,592) -->
+  <!-- Outer points A (170,760), B (170,620), C (900,180), D (1225,400), E (1225,592) -->
+
+  <!-- Domain fill -->
+  <path class="domain" d="M 170 760 L 170 620 L 900 180 Q 1040 230 1140 315 Q 1210 375 1225 400 L 1225 592 L 1170 592 L 850 592 L 610 680 L 240 760 Z"/>
+
+  <!-- Refinement region -->
+  <path class="refine" d="M 450 720 L 735 640 L 980 560 Q 1040 520 1080 470 Q 1060 360 960 305 Q 815 310 680 370 Q 520 475 420 600 Z"/>
+
+  <!-- Outer boundary -->
+  <path class="outer" d="M 170 760 L 170 620 L 900 180"/>
+  <path class="outer" d="M 900 180 Q 1040 230 1140 315 Q 1210 375 1225 400"/>
+  <path class="outer" d="M 1225 400 L 1225 592"/>
+
+  <!-- Wall -->
+  <path class="wall" d="M 240 760 L 610 680 L 850 592 L 1170 592"/>
+
+  <!-- Grid lines from left boundary to wall / right boundary -->
+  <path class="grid" d="M 172 742 Q 300 710 1170 592"/>
+  <path class="grid" d="M 172 718 Q 320 688 1178 566"/>
+  <path class="grid" d="M 172 694 Q 340 666 1190 538"/>
+  <path class="grid2" d="M 172 670 Q 365 646 1204 508"/>
+  <path class="grid2" d="M 172 646 Q 392 626 1215 476"/>
+  <path class="grid2" d="M 172 622 Q 422 607 1223 442"/>
+  <path class="grid" d="M 215 590 Q 455 580 1219 414"/>
+  <path class="grid" d="M 260 560 Q 492 552 1190 382"/>
+  <path class="grid" d="M 310 530 Q 530 522 1148 340"/>
+  <path class="grid" d="M 365 500 Q 570 492 1098 300"/>
+  <path class="grid" d="M 425 470 Q 615 462 1042 260"/>
+  <path class="grid" d="M 490 438 Q 662 432 980 222"/>
+
+  <!-- Grid lines between top boundary and wall -->
+  <path class="grid" d="M 210 600 Q 230 680 240 760"/>
+  <path class="grid" d="M 265 566 Q 295 654 287 751"/>
+  <path class="grid" d="M 320 533 Q 360 626 335 740"/>
+  <path class="grid" d="M 375 500 Q 425 600 385 729"/>
+  <path class="grid2" d="M 430 466 Q 492 575 438 717"/>
+  <path class="grid2" d="M 485 433 Q 558 550 494 705"/>
+  <path class="grid2" d="M 540 400 Q 625 525 553 692"/>
+  <path class="grid2" d="M 595 367 Q 693 500 616 678"/>
+  <path class="grid2" d="M 650 334 Q 760 476 684 652"/>
+  <path class="grid2" d="M 705 301 Q 825 454 755 627"/>
+  <path class="grid" d="M 760 268 Q 892 434 833 598"/>
+  <path class="grid" d="M 815 235 Q 956 420 920 592"/>
+  <path class="grid" d="M 870 198 Q 1015 405 1010 592"/>
+  <path class="grid" d="M 930 190 Q 1070 395 1095 592"/>
+  <path class="grid" d="M 995 205 Q 1132 388 1170 592"/>
+  <path class="grid" d="M 1060 238 Q 1190 390 1225 560"/>
+  <path class="grid" d="M 1115 280 Q 1210 410 1225 525"/>
+
+  <!-- Markers -->
+  <circle class="pt" cx="240" cy="760" r="7"/>
+  <circle class="pt" cx="610" cy="680" r="7"/>
+  <circle class="pt" cx="850" cy="592" r="7"/>
+  <circle class="pt" cx="1170" cy="592" r="7"/>
+  <circle class="pt" cx="170" cy="620" r="6"/>
+  <circle class="pt" cx="900" cy="180" r="6"/>
+  <circle class="pt" cx="1225" cy="400" r="6"/>
+  <circle class="pt" cx="1225" cy="592" r="6"/>
+
+  <!-- Dimension arrows -->
+  <path class="guide" d="M 275 742 L 575 677"/>
+  <path class="guide" d="M 642 663 L 820 598"/>
+  <path class="guide" d="M 880 560 L 1140 560"/>
+
+  <!-- Text labels -->
+  <text class="text" x="395" y="735">50 mm</text>
+  <text class="text" x="710" y="645">32 mm</text>
+  <text class="text" x="978" y="546">40 mm shoulder</text>
+
+  <text class="small" x="365" y="805">12 deg</text>
+  <text class="small" x="725" y="705">20 deg or 22 deg</text>
+
+  <text class="small" x="128" y="703" transform="rotate(-90 128 703)">short west inflow edge</text>
+  <text class="small" x="1210" y="500" transform="rotate(-90 1210 500)">east outlet edge</text>
+  <text class="small" x="405" y="165">top outer edge rises roughly with the leading-edge shock family</text>
+  <text class="small" x="950" y="315">smooth curved outer cap</text>
+  <text class="small" x="940" y="342">keeps reattachment shock / expansion away</text>
+
+  <text class="text" x="545" y="465">recommended refinement cap</text>
+  <text class="small" x="520" y="495">corner + separation + reattachment + post-reattachment BL</text>
+
+  <text class="text" x="150" y="870">Why this shape is closer to the literature route:</text>
+  <text class="tiny" x="175" y="902">1. It is not a rectangular farfield box; it behaves more like the cap-shaped outer contour you are already using.</text>
+  <text class="tiny" x="175" y="928">2. The top outer edge leaves room for the leading-edge shock, while the right curved cap leaves room for the reattachment shock and shoulder expansion.</text>
+  <text class="tiny" x="175" y="954">3. Unlike a degenerate point closure, it still preserves a short but explicit east outlet edge, which is safer for your current solver/export pipeline.</text>
+</svg>

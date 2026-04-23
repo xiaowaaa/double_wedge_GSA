@@ -1,0 +1,27 @@
+outputs/
+
+# MATLAB generated files and large result artifacts
+*.asv
+*.fig
+*.mat
+*.mex*
+*.mexa64
+*.mexw64
+*.slxc
+slprj/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+diary
+
+# Local OS/editor metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Literature PDFs are local references, not source code.
+paper/*.pdf

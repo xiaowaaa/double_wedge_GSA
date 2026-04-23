@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="700" viewBox="0 0 980 700">
+  <defs>
+    <style>
+      .title { font: 24px 'Microsoft YaHei', 'Noto Sans SC', sans-serif; fill: #1f2937; font-weight: 700; }
+      .subtitle { font: 16px 'Microsoft YaHei', 'Noto Sans SC', sans-serif; fill: #4b5563; }
+      .label { font: 18px 'Microsoft YaHei', 'Noto Sans SC', sans-serif; fill: #1f2937; }
+      .small { font: 15px 'Microsoft YaHei', 'Noto Sans SC', sans-serif; fill: #4b5563; }
+      .axis { stroke: #9ca3af; stroke-width: 1.5; }
+      .outer { stroke: #355c7d; stroke-width: 3; fill: none; }
+      .body { stroke: #1d4ed8; stroke-width: 7; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+      .inner { stroke: #cbd5e1; stroke-width: 1.4; fill: none; }
+      .refine { fill: #f59e0b; fill-opacity: 0.08; stroke: #f59e0b; stroke-width: 1.5; stroke-dasharray: 8 6; }
+      .measure { stroke: #6b7280; stroke-width: 1.6; marker-start: url(#arrow); marker-end: url(#arrow); }
+      .tick { stroke: #6b7280; stroke-width: 1.6; }
+      .note { fill: #111827; font: 15px 'Microsoft YaHei', 'Noto Sans SC', sans-serif; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <path d="M 0 5 L 10 0 L 7.5 5 L 10 10 Z" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#ffffff"/>
+
+  <text x="50" y="42" class="title">Sidharth 2018 更贴近文献的推荐外形示意</text>
+  <text x="50" y="70" class="subtitle">基于文中几何、shoulder、freestream sponge 与 2D structured-grid 叙述推断；外边界具体数值文中未逐点公布</text>
+
+  <line x1="90" y1="600" x2="915" y2="600" class="axis"/>
+  <line x1="90" y1="600" x2="90" y2="105" class="axis"/>
+  <text x="922" y="606" class="label">x</text>
+  <text x="78" y="102" class="label">y</text>
+
+  <!-- outer boundary -->
+  <polyline points="150,220 825,90 825,393 180,500 150,220" class="outer"/>
+
+  <!-- body -->
+  <polyline points="180,500 425,448 575,393 775,393" class="body"/>
+
+  <!-- refinement region -->
+  <polygon points="365,455 475,430 620,360 690,290 780,150 665,180 565,275 470,370 360,440" class="refine"/>
+
+  <!-- structured-grid style interior lines -->
+  <polyline points="160,235 210,490" class="inner"/>
+  <polyline points="195,228 250,485" class="inner"/>
+  <polyline points="230,221 290,478" class="inner"/>
+  <polyline points="265,214 330,470" class="inner"/>
+  <polyline points="300,207 370,460" class="inner"/>
+  <polyline points="335,200 410,450" class="inner"/>
+  <polyline points="370,193 450,439" class="inner"/>
+  <polyline points="405,186 490,425" class="inner"/>
+  <polyline points="440,180 530,409" class="inner"/>
+  <polyline points="475,173 570,393" class="inner"/>
+  <polyline points="510,166 612,393" class="inner"/>
+  <polyline points="545,159 654,393" class="inner"/>
+  <polyline points="580,152 696,393" class="inner"/>
+  <polyline points="615,145 738,393" class="inner"/>
+  <polyline points="650,138 780,393" class="inner"/>
+  <polyline points="685,131 795,365" class="inner"/>
+  <polyline points="720,124 806,335" class="inner"/>
+  <polyline points="755,117 815,305" class="inner"/>
+  <polyline points="790,110 822,275" class="inner"/>
+
+  <polyline points="154,226 195,225 237,224 279,223 321,221 363,219 405,217 447,215 489,214 531,212 573,210 615,208 657,206 699,204 741,202 783,200 825,198" class="inner"/>
+  <polyline points="158,247 201,247 244,246 287,245 330,244 373,243 416,241 459,239 502,237 545,235 588,233 631,231 674,229 717,227 760,225 793,223 825,221" class="inner"/>
+  <polyline points="163,270 207,270 251,269 295,268 339,267 383,265 427,263 471,261 515,258 559,255 603,252 647,248 691,244 735,240 779,235 804,232 825,230" class="inner"/>
+  <polyline points="168,296 213,296 258,295 303,294 348,292 393,289 438,285 483,280 528,274 573,267 618,258 663,248 708,236 753,221 792,206 825,192" class="inner"/>
+  <polyline points="173,325 219,325 265,324 311,321 357,316 403,309 449,300 495,289 541,274 587,256 633,235 679,210 725,182 771,149 804,122 825,106" class="inner"/>
+  <polyline points="177,358 224,357 271,353 318,346 365,334 412,319 459,299 506,274 553,243 600,208 647,168 694,124 741,76 783,34" class="inner"/>
+
+  <!-- annotations -->
+  <text x="285" y="420" class="label">P1 / corner</text>
+  <text x="590" y="378" class="label">P2</text>
+  <text x="790" y="386" class="label">P3 / shoulder end</text>
+  <text x="187" y="527" class="label">P0 / leading edge</text>
+
+  <text x="585" y="292" class="label">建议重点加密区</text>
+  <text x="585" y="316" class="small">分离点、剪切层、再附点、再附后边界层</text>
+
+  <text x="130" y="198" class="label">上边界：freestream / farfield</text>
+  <text x="92" y="385" class="label" transform="rotate(-73 92 385)">入口边</text>
+  <text x="844" y="255" class="label" transform="rotate(90 844 255)">出口边</text>
+
+  <!-- length measures -->
+  <line x1="190" y1="545" x2="425" y2="495" class="measure"/>
+  <line x1="180" y1="500" x2="190" y2="545" class="tick"/>
+  <line x1="425" y1="448" x2="425" y2="495" class="tick"/>
+  <text x="292" y="570" class="label">50 mm, 12°</text>
+
+  <line x1="435" y1="515" x2="575" y2="465" class="measure"/>
+  <line x1="425" y1="448" x2="435" y2="515" class="tick"/>
+  <line x1="575" y1="393" x2="575" y2="465" class="tick"/>
+  <text x="468" y="540" class="label">32 mm, second ramp</text>
+
+  <line x1="585" y1="438" x2="775" y2="438" class="measure"/>
+  <line x1="575" y1="393" x2="585" y2="438" class="tick"/>
+  <line x1="775" y1="393" x2="775" y2="438" class="tick"/>
+  <text x="634" y="463" class="label">40 mm shoulder</text>
+
+  <path d="M 500 463 A 46 46 0 0 1 547 447" fill="none" stroke="#6b7280" stroke-width="1.6"/>
+  <text x="510" y="438" class="label">20°</text>
+
+  <path d="M 235 498 A 55 55 0 0 1 286 487" fill="none" stroke="#6b7280" stroke-width="1.6"/>
+  <text x="242" y="474" class="label">12°</text>
+
+  <!-- notes -->
+  <text x="55" y="635" class="note">推荐用途：复刻 Sidharth 2018 的 2D base flow + 3D spanwise-periodic GLSA，而不是迁就当前 812x382 工程网格。</text>
+  <text x="55" y="660" class="note">关键判断：文献更强调“整条下边界为双楔+shoulder、顶部为连续远场边”，不支持把外边界做成右侧大圆帽的强人为造型。</text>
+</svg>
