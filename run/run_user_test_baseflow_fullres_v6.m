@@ -17,6 +17,13 @@ function summary = run_user_test_baseflow_fullres_v6(varargin)
     addParameter(p, 'SigmaTriplet', [], @(x) isempty(x) || isnumeric(x));
     addParameter(p, 'KrylovDimensionFloor', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
     addParameter(p, 'KrylovDimensionCap', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
+    addParameter(p, 'MachInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'ReInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'TInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'Gamma', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 1.0));
+    addParameter(p, 'Pr', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'WallModel', '', @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    addParameter(p, 'WallTemperature', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
     addParameter(p, 'ForceLowMemoryDescriptor', false, @(x) islogical(x) || isnumeric(x));
     addParameter(p, 'CaseName', 'user_test_baseflow_270x128_fullres_v6', ...
         @(x) ischar(x) || (isstring(x) && isscalar(x)));
@@ -80,7 +87,14 @@ function summary = run_user_test_baseflow_fullres_v6(varargin)
             'SigmaShift', p.Results.SigmaShift, ...
             'SigmaTriplet', p.Results.SigmaTriplet, ...
             'KrylovDimensionFloor', p.Results.KrylovDimensionFloor, ...
-            'KrylovDimensionCap', p.Results.KrylovDimensionCap);
+            'KrylovDimensionCap', p.Results.KrylovDimensionCap, ...
+            'MachInf', p.Results.MachInf, ...
+            'ReInf', p.Results.ReInf, ...
+            'TInf', p.Results.TInf, ...
+            'Gamma', p.Results.Gamma, ...
+            'Pr', p.Results.Pr, ...
+            'WallModel', p.Results.WallModel, ...
+            'WallTemperature', p.Results.WallTemperature);
         local_apply_part1_config_overrides('Part1_Results.mat', p.Results);
         Main_DoubleWedge_Part2_v6();
         part3_variant_used = local_run_part3_variant(requested_part3_variant);
@@ -260,6 +274,14 @@ function summary = local_build_part4_summary(case_dir, case_identity, opts, solv
     summary.reference_scales = local_get_optional_field(solve_config, 'reference_scales', struct('defined', false));
     summary.n_eigs = solve_config.n_eigs;
     summary.beta = solve_config.beta;
+    summary.Ma_inf = solve_config.Ma_inf;
+    summary.Re_inf = solve_config.Re_inf;
+    summary.T_inf = solve_config.T_inf;
+    summary.gamma = solve_config.gamma;
+    summary.Pr = solve_config.Pr;
+    summary.wall_model = solve_config.wall_model;
+    summary.T_wall = solve_config.T_wall;
+    summary.T_wall_nd = solve_config.T_wall_nd;
     summary.sigma_shift = solve_config.sigma;
     summary.sigma_triplet = solve_config.sigma_triplet;
     summary.state_layout = solve_config.state_layout;
@@ -398,6 +420,14 @@ function summary = local_build_part3_summary(case_dir, case_identity, opts, solv
     summary.reference_scales = local_get_optional_field(solve_config, 'reference_scales', struct('defined', false));
     summary.n_eigs = solve_config.n_eigs;
     summary.beta = solve_config.beta;
+    summary.Ma_inf = solve_config.Ma_inf;
+    summary.Re_inf = solve_config.Re_inf;
+    summary.T_inf = solve_config.T_inf;
+    summary.gamma = solve_config.gamma;
+    summary.Pr = solve_config.Pr;
+    summary.wall_model = solve_config.wall_model;
+    summary.T_wall = solve_config.T_wall;
+    summary.T_wall_nd = solve_config.T_wall_nd;
     summary.sigma_shift = solve_config.sigma;
     summary.sigma_triplet = solve_config.sigma_triplet;
     summary.state_layout = solve_config.state_layout;
@@ -507,6 +537,7 @@ function case_identity = local_build_case_identity(project_root, baseflow_file, 
     case_identity.stride = [double(opts.StrideX), double(opts.StrideY)];
     case_identity.top_type = char(string(opts.TopType));
     case_identity.benchmark_profile = char(string(opts.BenchmarkProfile));
+    case_identity.wall_model = local_resolve_wall_model_option(opts.WallModel);
     case_identity.part3_variant_requested = requested_part3_variant;
     case_identity.part3_variant_used = part3_variant_used;
 end
@@ -562,6 +593,13 @@ function local_validate_reuse_request(opts, requested_part3_variant, baseflow_fi
         Config.boundary_map.north, requested.top_type);
     mismatches = local_collect_mismatch(mismatches, 'BenchmarkProfile', ...
         local_get_optional_field(Config, 'benchmark_profile', ''), requested.benchmark_profile);
+    mismatches = local_collect_mismatch(mismatches, 'MachInf', Config.Ma_inf, requested.mach_inf);
+    mismatches = local_collect_mismatch(mismatches, 'ReInf', Config.Re_inf, requested.re_inf);
+    mismatches = local_collect_mismatch(mismatches, 'TInf', Config.T_inf, requested.t_inf);
+    mismatches = local_collect_mismatch(mismatches, 'Gamma', Config.gamma, requested.gamma);
+    mismatches = local_collect_mismatch(mismatches, 'Pr', Config.Pr, requested.pr);
+    mismatches = local_collect_mismatch(mismatches, 'WallModel', Config.wall_model, requested.wall_model);
+    mismatches = local_collect_mismatch(mismatches, 'WallTemperature', Config.T_wall, requested.wall_temperature);
     mismatches = local_collect_mismatch(mismatches, 'Beta', Config.beta, requested.beta);
     mismatches = local_collect_mismatch(mismatches, 'NEigs', Config.n_eigs, requested.n_eigs);
     mismatches = local_collect_mismatch(mismatches, 'SigmaShift', Config.sigma, requested.sigma_shift);
@@ -624,6 +662,13 @@ function requested = local_build_effective_reuse_request(opts, requested_part3_v
     requested.stride = [double(opts.StrideX), double(opts.StrideY)];
     requested.top_type = char(string(opts.TopType));
     requested.benchmark_profile = char(string(opts.BenchmarkProfile));
+    requested.mach_inf = local_resolve_optional_override(opts.MachInf, 7.0);
+    requested.re_inf = local_resolve_optional_override(opts.ReInf, 1.0e5);
+    requested.t_inf = local_resolve_optional_override(opts.TInf, 191.0);
+    requested.gamma = local_resolve_optional_override(opts.Gamma, 1.4);
+    requested.pr = local_resolve_optional_override(opts.Pr, 0.71);
+    requested.wall_model = local_resolve_wall_model_option(opts.WallModel);
+    requested.wall_temperature = local_resolve_optional_override(opts.WallTemperature, 298.0);
     requested.beta = opts.Beta;
     requested.n_eigs = round(opts.NEigs);
     requested.sigma_shift = opts.SigmaShift;
@@ -684,6 +729,18 @@ function value = local_resolve_optional_override(override_value, default_value)
     else
         value = override_value;
     end
+end
+
+function wall_model = local_resolve_wall_model_option(override_value)
+%LOCAL_RESOLVE_WALL_MODEL_OPTION Resolve one wall-model option with defaults.
+
+    if strlength(string(override_value)) == 0
+        wall_model = 'adiabatic';
+    else
+        wall_model = char(string(override_value));
+    end
+    wall_model = normalize_wall_model(wall_model, ...
+        'ErrorIdentifier', 'run_user_test_baseflow_fullres_v6:WallModel');
 end
 
 function value = local_get_descriptor_solver_field(Config, name, default_value)
@@ -770,6 +827,10 @@ function part2 = local_backfill_part2_fields(part2, Config)
     end
 
     part2.BaseflowPhysicsAudit = local_ensure_struct_field(part2.BaseflowPhysicsAudit, 'eos_relative_error', NaN);
+    part2.BaseflowPhysicsAudit = local_ensure_struct_field(part2.BaseflowPhysicsAudit, 'wall_model', 'adiabatic');
+    part2.BaseflowPhysicsAudit = local_ensure_struct_field(part2.BaseflowPhysicsAudit, 'wall_temperature_target', NaN);
+    part2.BaseflowPhysicsAudit = local_ensure_struct_field(part2.BaseflowPhysicsAudit, 'wall_temperature_target_nd', NaN);
+    part2.BaseflowPhysicsAudit = local_ensure_struct_field(part2.BaseflowPhysicsAudit, 'wall_temperature_check_applied', false);
     part2.BaseflowPhysicsAudit = local_ensure_struct_field(part2.BaseflowPhysicsAudit, 'wall_temperature_relative_mismatch', NaN);
     part2.BaseflowPhysicsAudit = local_ensure_struct_field(part2.BaseflowPhysicsAudit, 'continuity_residual_max', NaN);
     part2.BaseflowPhysicsAudit = local_ensure_struct_field(part2.BaseflowPhysicsAudit, 'bubble_exists', false);
@@ -830,13 +891,14 @@ function tbl = local_build_legacy_baseflow_reference_table(Config, BaseflowPhysi
         wall_bc = char(string(Config.boundary_map.south));
     end
 
-    names = {'geometry'; 'Mach'; 'Re'; 'wall_bc'; ...
+    names = {'geometry'; 'Mach'; 'Re'; 'wall_bc'; 'wall_temperature'; ...
         'separation_x'; 'reattachment_x'; 'bubble_length'; 'delta99_at_separation'};
     values = { ...
         local_get_optional_field(Config, 'geometry_name', 'double_wedge'); ...
         local_format_summary_value(local_get_optional_field(Config, 'Ma_inf', NaN)); ...
         local_format_summary_value(local_get_optional_field(Config, 'Re_inf', NaN)); ...
-        wall_bc; ...
+        local_get_optional_field(Config, 'wall_model', wall_bc); ...
+        local_format_summary_value(local_get_optional_field(Config, 'T_wall', NaN)); ...
         local_format_summary_value(local_get_optional_field(BaseflowPhysicsAudit, 'separation_x', NaN)); ...
         local_format_summary_value(local_get_optional_field(BaseflowPhysicsAudit, 'reattachment_x', NaN)); ...
         local_format_summary_value(local_get_optional_field(BaseflowPhysicsAudit, 'bubble_length', NaN)); ...
@@ -847,7 +909,7 @@ end
 function local_write_summary_text(output_file, summary, top_modes)
 %LOCAL_WRITE_SUMMARY_TEXT Write a compact text summary next to the case outputs.
 
-    fid = fopen(output_file, 'w');
+    fid = open_output_text_file(output_file);
     if fid == -1
         warning('run_user_test_baseflow_fullres_v6:SummaryWrite', ...
             'Unable to write summary text file: %s', output_file);
@@ -856,32 +918,40 @@ function local_write_summary_text(output_file, summary, top_modes)
 
     cleanup_obj = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
-    fprintf(fid, 'User test baseflow full-resolution v6 run\n');
-    fprintf(fid, 'run_stage: %s\n', summary.stage_completed);
-    fprintf(fid, 'baseflow_file: %s\n', summary.baseflow_file);
-    fprintf(fid, 'case_dir: %s\n', summary.case_dir);
-    fprintf(fid, 'figure_directory: %s\n', summary.figure_directory);
-    fprintf(fid, 'reuse_existing_case: %d\n', summary.reuse_existing_case);
-    fprintf(fid, 'expected_dims: %d x %d\n', summary.expected_dims(1), summary.expected_dims(2));
-    fprintf(fid, 'working_dims: %d x %d\n', summary.working_dims(1), summary.working_dims(2));
-    fprintf(fid, 'stride: %d x %d\n', summary.stride(1), summary.stride(2));
-    fprintf(fid, 'top_type: %s\n', summary.top_type);
-    fprintf(fid, 'benchmark_profile: %s\n', local_format_summary_value(summary.benchmark_profile));
-    fprintf(fid, 'target_benchmark: %s\n', local_format_summary_value(summary.target_benchmark));
-    fprintf(fid, 'primary_plot_contract: %s\n', local_format_summary_value(summary.primary_plot_contract));
-    fprintf(fid, 'secondary_plot_contract: %s\n', local_format_summary_value(summary.secondary_plot_contract));
-    fprintf(fid, 'state_layout: %s\n', summary.state_layout);
-    fprintf(fid, 'operator_model: %s\n', summary.operator_model);
-    fprintf(fid, 'part3_variant_requested: %s\n', summary.part3_variant_requested);
-    fprintf(fid, 'part3_variant_used: %s\n', summary.part3_variant_used);
-    fprintf(fid, 'n_eigs: %d\n', summary.n_eigs);
-    fprintf(fid, 'beta: %.6f\n', summary.beta);
-    fprintf(fid, 'use_sponge: %d\n', summary.use_sponge);
-    fprintf(fid, 'use_semi_artificial_viscosity: %d\n', summary.use_semi_artificial_viscosity);
-    fprintf(fid, 'use_shock_source_regularization: %d\n', summary.use_shock_source_regularization);
-    fprintf(fid, 'pressure_row_regularization_enabled: %d\n', summary.pressure_row_regularization.enabled);
-    fprintf(fid, 'sigma_shift: %+.6e%+.6ei\n', real(summary.sigma_shift), imag(summary.sigma_shift));
-    fprintf(fid, 'sigma_triplet: [');
+    fprintf(fid, '%s\n', localize_output_label('User test baseflow full-resolution v6 run'));
+    fprintf(fid, '%s: %s\n', localize_output_label('run_stage'), summary.stage_completed);
+    fprintf(fid, '%s: %s\n', localize_output_label('baseflow_file'), summary.baseflow_file);
+    fprintf(fid, '%s: %s\n', localize_output_label('case_dir'), summary.case_dir);
+    fprintf(fid, '%s: %s\n', localize_output_label('figure_directory'), summary.figure_directory);
+    fprintf(fid, '%s: %d\n', localize_output_label('reuse_existing_case'), summary.reuse_existing_case);
+    fprintf(fid, '%s: %d x %d\n', localize_output_label('expected_dims'), summary.expected_dims(1), summary.expected_dims(2));
+    fprintf(fid, '%s: %d x %d\n', localize_output_label('working_dims'), summary.working_dims(1), summary.working_dims(2));
+    fprintf(fid, '%s: %d x %d\n', localize_output_label('stride'), summary.stride(1), summary.stride(2));
+    fprintf(fid, '%s: %s\n', localize_output_label('top_type'), summary.top_type);
+    fprintf(fid, '%s: %s\n', localize_output_label('benchmark_profile'), local_format_summary_value(summary.benchmark_profile));
+    fprintf(fid, '%s: %s\n', localize_output_label('target_benchmark'), local_format_summary_value(summary.target_benchmark));
+    fprintf(fid, '%s: %s\n', localize_output_label('primary_plot_contract'), local_format_summary_value(summary.primary_plot_contract));
+    fprintf(fid, '%s: %s\n', localize_output_label('secondary_plot_contract'), local_format_summary_value(summary.secondary_plot_contract));
+    fprintf(fid, '%s: %s\n', localize_output_label('state_layout'), summary.state_layout);
+    fprintf(fid, '%s: %s\n', localize_output_label('operator_model'), summary.operator_model);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('Ma_inf'), summary.Ma_inf);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('Re_inf'), summary.Re_inf);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('T_inf'), summary.T_inf);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('gamma'), summary.gamma);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('Pr'), summary.Pr);
+    fprintf(fid, '%s: %s\n', localize_output_label('wall_model'), summary.wall_model);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('T_wall'), summary.T_wall);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('T_wall_nd'), summary.T_wall_nd);
+    fprintf(fid, '%s: %s\n', localize_output_label('part3_variant_requested'), summary.part3_variant_requested);
+    fprintf(fid, '%s: %s\n', localize_output_label('part3_variant_used'), summary.part3_variant_used);
+    fprintf(fid, '%s: %d\n', localize_output_label('n_eigs'), summary.n_eigs);
+    fprintf(fid, '%s: %.6f\n', localize_output_label('beta'), summary.beta);
+    fprintf(fid, '%s: %d\n', localize_output_label('use_sponge'), summary.use_sponge);
+    fprintf(fid, '%s: %d\n', localize_output_label('use_semi_artificial_viscosity'), summary.use_semi_artificial_viscosity);
+    fprintf(fid, '%s: %d\n', localize_output_label('use_shock_source_regularization'), summary.use_shock_source_regularization);
+    fprintf(fid, '%s: %d\n', localize_output_label('pressure_row_regularization_enabled'), summary.pressure_row_regularization.enabled);
+    fprintf(fid, '%s: %+.6e%+.6ei\n', localize_output_label('sigma_shift'), real(summary.sigma_shift), imag(summary.sigma_shift));
+    fprintf(fid, '%s: [', localize_output_label('sigma_triplet'));
     for k = 1:numel(summary.sigma_triplet)
         fprintf(fid, '%+.3e%+.3ei', real(summary.sigma_triplet(k)), imag(summary.sigma_triplet(k)));
         if k < numel(summary.sigma_triplet)
@@ -889,11 +959,15 @@ function local_write_summary_text(output_file, summary, top_modes)
         end
     end
     fprintf(fid, ']\n');
-    fprintf(fid, 'base_eos_relative_error: %.6e\n', summary.baseflow_physics_audit.eos_relative_error);
-    fprintf(fid, 'base_wall_temperature_relative_mismatch: %.6e\n', ...
+    fprintf(fid, '%s: %.6e\n', localize_output_label('base_eos_relative_error'), summary.baseflow_physics_audit.eos_relative_error);
+    fprintf(fid, '%s: %s\n', localize_output_label('base_wall_model'), local_format_summary_value(summary.baseflow_physics_audit.wall_model));
+    fprintf(fid, '%s: %d\n', localize_output_label('base_wall_temperature_check_applied'), summary.baseflow_physics_audit.wall_temperature_check_applied);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('base_wall_temperature_target'), summary.baseflow_physics_audit.wall_temperature_target);
+    fprintf(fid, '%s: %.6g\n', localize_output_label('base_wall_temperature_target_nd'), summary.baseflow_physics_audit.wall_temperature_target_nd);
+    fprintf(fid, '%s: %.6e\n', localize_output_label('base_wall_temperature_relative_mismatch'), ...
         summary.baseflow_physics_audit.wall_temperature_relative_mismatch);
-    fprintf(fid, 'continuity_residual_max: %.6e\n', summary.baseflow_physics_audit.continuity_residual_max);
-    fprintf(fid, 'bubble_exists: %d\n', summary.baseflow_physics_audit.bubble_exists);
+    fprintf(fid, '%s: %.6e\n', localize_output_label('continuity_residual_max'), summary.baseflow_physics_audit.continuity_residual_max);
+    fprintf(fid, '%s: %d\n', localize_output_label('bubble_exists'), summary.baseflow_physics_audit.bubble_exists);
     local_write_named_fields(fid, 'Literature benchmark audit', summary.literature_benchmark_audit, { ...
         'benchmark_profile', 'target_benchmark', 'boundary_contract_match', ...
         'reference_scales_defined', 'profile_target_match', ...
@@ -901,49 +975,55 @@ function local_write_summary_text(output_file, summary, top_modes)
     local_write_table_block(fid, 'Baseflow reference table', summary.baseflow_reference_table);
 
     if strcmp(summary.stage_completed, 'Part4')
-        fprintf(fid, 'leading_mode_available: %d\n', summary.leading_mode_available);
-        fprintf(fid, 'leading_mode_position: %g\n', summary.leading_mode_position);
-        fprintf(fid, 'leading_mode_original_index: %g\n', summary.leading_mode_original_index);
-        fprintf(fid, 'leading_mode_resolution_status: %s\n', summary.leading_mode_resolution.status);
-        fprintf(fid, 'leading_mode_resolution_source: %s\n', summary.leading_mode_resolution.source);
-        fprintf(fid, 'leading_sigma: %+.6e%+.6ei\n', summary.leading_sigma_r, summary.leading_sigma_i);
-        fprintf(fid, 'leading_freq_nd: %+.6f\n', summary.leading_freq_nd);
-        fprintf(fid, 'leading_freq_signed: %+.6f\n', summary.leading_freq_signed);
-        fprintf(fid, 'leading_residual: %.6e\n', summary.leading_residual);
-        fprintf(fid, 'leading_residual_active: %.6e\n', summary.leading_residual_active);
-        fprintf(fid, 'leading_residual_algebraic: %.6e\n', summary.leading_residual_algebraic);
-        fprintf(fid, 'leading_residual_scaled: %.6e\n', summary.leading_residual_scaled);
-        fprintf(fid, 'leading_bubble_overlap: %.6f\n', summary.leading_bubble_overlap);
-        fprintf(fid, 'leading_near_wall_energy_frac: %.6f\n', summary.leading_near_wall_energy_frac);
-        fprintf(fid, 'leading_free_stream_energy_frac: %.6f\n', summary.leading_free_stream_energy_frac);
-        fprintf(fid, 'leading_outlet_energy_frac: %.6f\n', summary.leading_outlet_energy_frac);
-        fprintf(fid, 'leading_outlet_wall_energy_frac: %.6f\n', summary.leading_outlet_wall_energy_frac);
-        fprintf(fid, 'leading_shock_energy_frac: %.6f\n', summary.leading_shock_energy_frac);
-        fprintf(fid, 'leading_checker_ratio: %.6f\n', summary.leading_checker_ratio);
-        fprintf(fid, 'leading_mode_family: %s\n', summary.leading_mode_family);
-        fprintf(fid, 'leading_physical_candidate_score: %.6f\n', summary.leading_physical_candidate_score);
-        fprintf(fid, 'leading_bubble_shock_phase_deg: %.6f\n', summary.leading_bubble_shock_phase_deg);
-        fprintf(fid, 'leading_bubble_shock_sync: %.6f\n', summary.leading_bubble_shock_sync);
-        fprintf(fid, 'leading_reference_component: %s\n', summary.leading_reference_component);
-        fprintf(fid, 'leading_selected_for_plots: %d\n', summary.leading_selected_for_plots);
-        fprintf(fid, 'leading_selected_for_publication: %d\n', summary.leading_selected_for_publication);
-        fprintf(fid, 'selection_status: %s\n', summary.selection_summary.status);
-        fprintf(fid, 'publication_allowed: %d\n', summary.mode_validity_report.publication_allowed);
-        fprintf(fid, 'mode_validity_primary_reason: %s\n', summary.mode_validity_report.primary_reason);
-        fprintf(fid, 'adjoint_lead_enabled: %d\n', summary.adjoint_lead_audit.enabled);
+        fprintf(fid, '%s: %d\n', localize_output_label('leading_mode_available'), summary.leading_mode_available);
+        fprintf(fid, '%s: %g\n', localize_output_label('leading_mode_position'), summary.leading_mode_position);
+        fprintf(fid, '%s: %g\n', localize_output_label('leading_mode_original_index'), summary.leading_mode_original_index);
+        fprintf(fid, '%s: %s\n', localize_output_label('leading_mode_resolution_status'), ...
+            local_format_summary_value(summary.leading_mode_resolution.status));
+        fprintf(fid, '%s: %s\n', localize_output_label('leading_mode_resolution_source'), ...
+            local_format_summary_value(summary.leading_mode_resolution.source));
+        fprintf(fid, '%s: %+.6e%+.6ei\n', localize_output_label('leading_sigma'), summary.leading_sigma_r, summary.leading_sigma_i);
+        fprintf(fid, '%s: %+.6f\n', localize_output_label('leading_freq_nd'), summary.leading_freq_nd);
+        fprintf(fid, '%s: %+.6f\n', localize_output_label('leading_freq_signed'), summary.leading_freq_signed);
+        fprintf(fid, '%s: %.6e\n', localize_output_label('leading_residual'), summary.leading_residual);
+        fprintf(fid, '%s: %.6e\n', localize_output_label('leading_residual_active'), summary.leading_residual_active);
+        fprintf(fid, '%s: %.6e\n', localize_output_label('leading_residual_algebraic'), summary.leading_residual_algebraic);
+        fprintf(fid, '%s: %.6e\n', localize_output_label('leading_residual_scaled'), summary.leading_residual_scaled);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_bubble_overlap'), summary.leading_bubble_overlap);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_near_wall_energy_frac'), summary.leading_near_wall_energy_frac);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_free_stream_energy_frac'), summary.leading_free_stream_energy_frac);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_outlet_energy_frac'), summary.leading_outlet_energy_frac);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_outlet_wall_energy_frac'), summary.leading_outlet_wall_energy_frac);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_shock_energy_frac'), summary.leading_shock_energy_frac);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_checker_ratio'), summary.leading_checker_ratio);
+        fprintf(fid, '%s: %s\n', localize_output_label('leading_mode_family'), ...
+            local_format_summary_value(summary.leading_mode_family));
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_physical_candidate_score'), summary.leading_physical_candidate_score);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_bubble_shock_phase_deg'), summary.leading_bubble_shock_phase_deg);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('leading_bubble_shock_sync'), summary.leading_bubble_shock_sync);
+        fprintf(fid, '%s: %s\n', localize_output_label('leading_reference_component'), summary.leading_reference_component);
+        fprintf(fid, '%s: %d\n', localize_output_label('leading_selected_for_plots'), summary.leading_selected_for_plots);
+        fprintf(fid, '%s: %d\n', localize_output_label('leading_selected_for_publication'), summary.leading_selected_for_publication);
+        fprintf(fid, '%s: %s\n', localize_output_label('selection_status'), ...
+            local_format_summary_value(summary.selection_summary.status));
+        fprintf(fid, '%s: %d\n', localize_output_label('publication_allowed'), summary.mode_validity_report.publication_allowed);
+        fprintf(fid, '%s: %s\n', localize_output_label('mode_validity_primary_reason'), ...
+            local_format_summary_value(summary.mode_validity_report.primary_reason));
+        fprintf(fid, '%s: %d\n', localize_output_label('adjoint_lead_enabled'), summary.adjoint_lead_audit.enabled);
         if isfield(summary.adjoint_lead_audit, 'reason')
-            fprintf(fid, 'adjoint_lead_reason: %s\n', char(string(summary.adjoint_lead_audit.reason)));
+            fprintf(fid, '%s: %s\n', localize_output_label('adjoint_lead_reason'), ...
+                local_format_summary_value(summary.adjoint_lead_audit.reason));
         end
         if isfield(summary.adjoint_lead_audit, 'wavemaker_bubble_frac')
-            fprintf(fid, 'wavemaker_bubble_frac: %.6f\n', summary.adjoint_lead_audit.wavemaker_bubble_frac);
+            fprintf(fid, '%s: %.6f\n', localize_output_label('wavemaker_bubble_frac'), summary.adjoint_lead_audit.wavemaker_bubble_frac);
         end
         if isfield(summary.adjoint_lead_audit, 'wavemaker_shock_frac')
-            fprintf(fid, 'wavemaker_shock_frac: %.6f\n', summary.adjoint_lead_audit.wavemaker_shock_frac);
+            fprintf(fid, '%s: %.6f\n', localize_output_label('wavemaker_shock_frac'), summary.adjoint_lead_audit.wavemaker_shock_frac);
         end
-        fprintf(fid, 'matrix_row_ratio_before: %.6e\n', summary.matrix_health.row_norm_ratio_before);
-        fprintf(fid, 'matrix_row_ratio_after: %.6e\n', summary.matrix_health.row_norm_ratio_after);
-        fprintf(fid, 'matrix_zero_rows: %d\n', numel(summary.matrix_report.zero_rows));
-        fprintf(fid, 'matrix_zero_cols: %d\n', numel(summary.matrix_report.zero_cols));
+        fprintf(fid, '%s: %.6e\n', localize_output_label('matrix_row_ratio_before'), summary.matrix_health.row_norm_ratio_before);
+        fprintf(fid, '%s: %.6e\n', localize_output_label('matrix_row_ratio_after'), summary.matrix_health.row_norm_ratio_after);
+        fprintf(fid, '%s: %d\n', localize_output_label('matrix_zero_rows'), numel(summary.matrix_report.zero_rows));
+        fprintf(fid, '%s: %d\n', localize_output_label('matrix_zero_cols'), numel(summary.matrix_report.zero_cols));
         local_write_table_block(fid, 'Mode reference table', summary.mode_reference_table);
         local_write_table_block(fid, 'Eigen reference table', summary.eigen_reference_table);
         local_write_table_block(fid, 'Figure criteria table', summary.figure_criteria_table);
@@ -958,14 +1038,16 @@ function local_write_summary_text(output_file, summary, top_modes)
             'selection_status', 'plot_status', 'has_plot_lead', ...
             'reference_component', 'normalization', 'normalization_scale', ...
             'phase_anchor_type', 'phase_anchor_x', 'phase_anchor_y', ...
-            'figure_status'});
+            'figure_status', 'sidharth_component_contract', ...
+            'sidharth_gallery_component'});
         local_write_named_fields(fid, 'Figure audit', summary.figure_audit, { ...
             'lead_plot_index', 'status', 'num_gallery_pages', 'sidharth_gallery_pages', ...
+            'sidharth_component_contract', 'sidharth_gallery_component', ...
             'primary_plot_contract', 'secondary_plot_contract'});
-        fprintf(fid, '\nTop modes:\n');
+        fprintf(fid, '\n%s:\n', localize_output_label('Top modes'));
         for k = 1:numel(top_modes)
-            fprintf(fid, ['  #%d sigma=(%+.6e,%+.6e) residual=%.6e bubble=%.6f near_wall=%.6f ' ...
-                'free_stream=%.6f outlet=%.6f outlet_wall=%.6f shock=%.6f checker=%.6f family=%s score=%.6f plot=%d publication=%d\n'], ...
+            fprintf(fid, ['  #%d sigma=(%+.6e,%+.6e) 残差=%.6e 分离泡=%.6f 近壁=%.6f ' ...
+                '自由流=%.6f 出口=%.6f 出口壁面=%.6f 激波=%.6f 棋盘比=%.6f 家族=%s 得分=%.6f 绘图=%d 发表=%d\n'], ...
                 top_modes(k).index, top_modes(k).sigma_r, top_modes(k).sigma_i, ...
                 top_modes(k).residual, top_modes(k).bubble_overlap, top_modes(k).near_wall_energy_frac, ...
                 top_modes(k).free_stream_energy_frac, top_modes(k).outlet_energy_frac, ...
@@ -975,26 +1057,26 @@ function local_write_summary_text(output_file, summary, top_modes)
                 top_modes(k).selected_for_publication);
         end
     else
-        fprintf(fid, 'operator_row_ratio_before: %.6e\n', summary.operator_health.row_ratio_before);
-        fprintf(fid, 'operator_shock_to_nonshock_row_ratio: %.6e\n', summary.operator_health.shock_to_nonshock_row_ratio);
-        fprintf(fid, 'shock_mask_coverage: %.6f\n', summary.shock_info.coverage_fraction);
-        fprintf(fid, 'derivative_clip_total: %d\n', summary.derivative_clip_info.total_clipped);
-        fprintf(fid, 'derivative_zero_total: %d\n', summary.derivative_clip_info.total_zeroed);
-        fprintf(fid, 'sav_active_rows: %d\n', summary.sav_info.active_rows);
-        fprintf(fid, 'sav_active_points: %d\n', summary.sav_info.active_points);
-        fprintf(fid, 'beta_terms_active: %d\n', summary.beta_assembly_audit.has_spanwise_terms);
-        fprintf(fid, 'pressure_row_total_clipped: %d\n', summary.pressure_row_audit.total_clipped);
-        fprintf(fid, 'pressure_row_total_zeroed: %d\n', summary.pressure_row_audit.total_zeroed);
+        fprintf(fid, '%s: %.6e\n', localize_output_label('operator_row_ratio_before'), summary.operator_health.row_ratio_before);
+        fprintf(fid, '%s: %.6e\n', localize_output_label('operator_shock_to_nonshock_row_ratio'), summary.operator_health.shock_to_nonshock_row_ratio);
+        fprintf(fid, '%s: %.6f\n', localize_output_label('shock_mask_coverage'), summary.shock_info.coverage_fraction);
+        fprintf(fid, '%s: %d\n', localize_output_label('derivative_clip_total'), summary.derivative_clip_info.total_clipped);
+        fprintf(fid, '%s: %d\n', localize_output_label('derivative_zero_total'), summary.derivative_clip_info.total_zeroed);
+        fprintf(fid, '%s: %d\n', localize_output_label('sav_active_rows'), summary.sav_info.active_rows);
+        fprintf(fid, '%s: %d\n', localize_output_label('sav_active_points'), summary.sav_info.active_points);
+        fprintf(fid, '%s: %d\n', localize_output_label('beta_terms_active'), summary.beta_assembly_audit.has_spanwise_terms);
+        fprintf(fid, '%s: %d\n', localize_output_label('pressure_row_total_clipped'), summary.pressure_row_audit.total_clipped);
+        fprintf(fid, '%s: %d\n', localize_output_label('pressure_row_total_zeroed'), summary.pressure_row_audit.total_zeroed);
         if isfield(summary.pressure_closure_audit, 'rho_from_p_density_residual_max')
-            fprintf(fid, 'pressure_closure_rho_from_p_density_residual_max: %.6e\n', ...
+            fprintf(fid, '%s: %.6e\n', localize_output_label('pressure_closure_rho_from_p_density_residual_max'), ...
                 summary.pressure_closure_audit.rho_from_p_density_residual_max);
         end
         if isfield(summary.pressure_closure_audit, 'pressure_scale_density_residual_max')
-            fprintf(fid, 'pressure_closure_pressure_scale_density_residual_max: %.6e\n', ...
+            fprintf(fid, '%s: %.6e\n', localize_output_label('pressure_closure_pressure_scale_density_residual_max'), ...
                 summary.pressure_closure_audit.pressure_scale_density_residual_max);
         end
         if isfield(summary.pressure_closure_audit, 'linearized_eos_balance_residual_max')
-            fprintf(fid, 'pressure_closure_linearized_eos_balance_residual_max: %.6e\n', ...
+            fprintf(fid, '%s: %.6e\n', localize_output_label('pressure_closure_linearized_eos_balance_residual_max'), ...
                 summary.pressure_closure_audit.linearized_eos_balance_residual_max);
         end
         local_write_table_block(fid, 'Operator ablation table', summary.operator_ablation_table);
@@ -1183,7 +1265,43 @@ function Config = local_normalize_runner_config(Config)
 
     benchmark = local_default_benchmark_contract();
 
+    if isfield(Config, 'flow') && isstruct(Config.flow)
+        if ~isfield(Config, 'Ma_inf') && isfield(Config.flow, 'Ma_inf'), Config.Ma_inf = Config.flow.Ma_inf; end
+        if ~isfield(Config, 'Re_inf') && isfield(Config.flow, 'Re_inf'), Config.Re_inf = Config.flow.Re_inf; end
+        if ~isfield(Config, 'T_inf') && isfield(Config.flow, 'T_inf'), Config.T_inf = Config.flow.T_inf; end
+        if ~isfield(Config, 'gamma') && isfield(Config.flow, 'gamma'), Config.gamma = Config.flow.gamma; end
+        if ~isfield(Config, 'Pr') && isfield(Config.flow, 'Pr'), Config.Pr = Config.flow.Pr; end
+        if ~isfield(Config, 'Cv_nd') && isfield(Config.flow, 'Cv'), Config.Cv_nd = Config.flow.Cv; end
+        if ~isfield(Config, 'S_nd') && isfield(Config.flow, 'Sutherland_nd'), Config.S_nd = Config.flow.Sutherland_nd; end
+        if ~isfield(Config, 'wall_model') && isfield(Config.flow, 'wall_model'), Config.wall_model = Config.flow.wall_model; end
+        if ~isfield(Config, 'T_wall') && isfield(Config.flow, 'T_wall'), Config.T_wall = Config.flow.T_wall; end
+        if ~isfield(Config, 'T_wall_nd') && isfield(Config.flow, 'T_wall_nd'), Config.T_wall_nd = Config.flow.T_wall_nd; end
+    end
+
+    if ~isfield(Config, 'Ma_inf'), Config.Ma_inf = 7.0; end
+    if ~isfield(Config, 'Re_inf'), Config.Re_inf = 1.0e5; end
+    if ~isfield(Config, 'T_inf'), Config.T_inf = 191.0; end
+    if ~isfield(Config, 'gamma'), Config.gamma = 1.4; end
+    if ~isfield(Config, 'Pr'), Config.Pr = 0.71; end
+    if ~isfield(Config, 'Cv_nd')
+        Config.Cv_nd = 1.0 / (Config.gamma * (Config.gamma - 1.0) * Config.Ma_inf^2);
+    end
+    if ~isfield(Config, 'S_nd')
+        Config.S_nd = 110.4 / Config.T_inf;
+    end
+
     if ~isfield(Config, 'use_sponge'), Config.use_sponge = false; end
+    if ~isfield(Config, 'wall_model') || isempty(Config.wall_model)
+        Config.wall_model = 'adiabatic';
+    end
+    Config.wall_model = normalize_wall_model(Config.wall_model, ...
+        'ErrorIdentifier', 'run_user_test_baseflow_fullres_v6:WallModel');
+    if ~isfield(Config, 'T_wall') && isfield(Config, 'T_wall_nd')
+        Config.T_wall = Config.T_wall_nd * Config.T_inf;
+    elseif ~isfield(Config, 'T_wall')
+        Config.T_wall = 298.0;
+    end
+    Config.T_wall_nd = Config.T_wall / Config.T_inf;
     if ~isfield(Config, 'use_semi_artificial_viscosity'), Config.use_semi_artificial_viscosity = true; end
     if ~isfield(Config, 'semi_artificial_viscosity') || ~isstruct(Config.semi_artificial_viscosity)
         Config.semi_artificial_viscosity = struct();
@@ -1306,15 +1424,19 @@ end
 function local_write_named_fields(fid, title_text, S, field_names)
 %LOCAL_WRITE_NAMED_FIELDS Print one compact named-field block from a struct.
 
-    fprintf(fid, '\n%s:\n', title_text);
+    fprintf(fid, '\n%s:\n', localize_output_label(title_text));
     if ~isstruct(S) || isempty(fieldnames(S))
         fprintf(fid, '  <empty>\n');
+        return;
+    end
+    if ~isstruct(S) || isempty(fieldnames(S))
+        fprintf(fid, '  <空>\n');
         return;
     end
     for k = 1:numel(field_names)
         name = field_names{k};
         if isfield(S, name)
-            fprintf(fid, '  %s: %s\n', name, local_format_summary_value(S.(name)));
+            fprintf(fid, '  %s: %s\n', localize_output_label(name), local_format_summary_value(S.(name)));
         end
     end
 end
@@ -1322,23 +1444,34 @@ end
 function local_write_table_block(fid, title_text, table_value)
 %LOCAL_WRITE_TABLE_BLOCK Print one table-valued section into the text summary.
 
-    fprintf(fid, '\n%s:\n', title_text);
+    fprintf(fid, '\n%s:\n', localize_output_label(title_text));
     if ~istable(table_value) || isempty(table_value) || height(table_value) == 0
         fprintf(fid, '  <empty>\n');
         return;
     end
-    table_text = strtrim(evalc('disp(table_value)'));
+    if ~istable(table_value) || isempty(table_value) || height(table_value) == 0
+        fprintf(fid, '  <空>\n');
+        return;
+    end
+    display_table = localize_output_table_for_text(table_value);
+    table_text = strtrim(evalc('disp(display_table)'));
     fprintf(fid, '%s\n', table_text);
 end
 
 function local_write_component_audit_block(fid, audit_entries, lead_position)
 %LOCAL_WRITE_COMPONENT_AUDIT_BLOCK Print one compact lead-mode component summary.
 
-    fprintf(fid, '\nLead component audit:\n');
+    fprintf(fid, '\n%s:\n', localize_output_label('Lead component audit'));
     if ~isstruct(audit_entries) || isempty(audit_entries) || ~isfinite(lead_position) || ...
             lead_position < 1 || lead_position > numel(audit_entries) || ...
             ~isfield(audit_entries(lead_position), 'components')
         fprintf(fid, '  <unavailable>\n');
+        return;
+    end
+    if ~isstruct(audit_entries) || isempty(audit_entries) || ~isfinite(lead_position) || ...
+            lead_position < 1 || lead_position > numel(audit_entries) || ...
+            ~isfield(audit_entries(lead_position), 'components')
+        fprintf(fid, '  <不可用>\n');
         return;
     end
 
@@ -1369,7 +1502,8 @@ function local_write_component_audit_block(fid, audit_entries, lead_position)
         free_stream, peak_in_bubble, peak_in_shock, ...
         'VariableNames', {'component', 'bubble_support', 'bubble_core', 'shock_core', ...
         'outlet_wall', 'free_stream', 'peak_in_bubble', 'peak_in_shock'});
-    table_text = strtrim(evalc('disp(tbl)'));
+    display_table = localize_output_table_for_text(tbl);
+    table_text = strtrim(evalc('disp(display_table)'));
     fprintf(fid, '%s\n', table_text);
 end
 
@@ -1377,10 +1511,10 @@ function text = local_format_summary_value(value)
 %LOCAL_FORMAT_SUMMARY_VALUE Convert summary values into readable one-line text.
 
     if ischar(value)
-        text = value;
+        text = local_translate_summary_token(value);
     elseif isstring(value)
         if isscalar(value)
-            text = char(value);
+            text = local_translate_summary_token(char(value));
         else
             text = char(join(value, ', '));
         end
@@ -1418,6 +1552,34 @@ function text = local_format_summary_value(value)
         end
     else
         text = '<unprintable>';
+    end
+end
+
+function text_out = local_translate_summary_token(text_in)
+%LOCAL_TRANSLATE_SUMMARY_TOKEN Localize one compact status string when helpful.
+
+    text_out = char(string(text_in));
+    switch lower(strtrim(text_out))
+        case 'resolved'
+            text_out = '已解析';
+        case 'plot_leading_mode_position'
+            text_out = '绘图主模态位置';
+        case 'bubble_centred'
+            text_out = '分离泡主导';
+        case 'boundary_supported'
+            text_out = '边界支撑';
+        case 'compact_interior_candidate'
+            text_out = '紧凑内域候选';
+        case 'physical_plot_candidates_available'
+            text_out = '存在物理绘图候选';
+        case {'no_physical_plot_candidate', 'no_physical_plot_candidates'}
+            text_out = '无物理绘图候选';
+        case 'papera_physical_mode'
+            text_out = 'PaperA物理模态';
+        case 'disabled_by_config'
+            text_out = '配置关闭';
+        case 'structural_benchmark_not_physical_reproduction'
+            text_out = '结构基准，非物理复现';
     end
 end
 

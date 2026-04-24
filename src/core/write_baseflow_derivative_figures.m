@@ -5,7 +5,15 @@ function FigureAudit = write_baseflow_derivative_figures(fig_dir, X, Y, ~, dX)
         mkdir(fig_dir);
     end
 
-    output_file = fullfile(fig_dir, 'Fig02_BaseflowUxUxx.png');
+    derivative_label = localize_output_label('baseflow derivative');
+    figure_name = sprintf('Fig02_%s_u_x_u_xx.png', ...
+        sanitize_output_filename_token(derivative_label));
+    output_file = fullfile(fig_dir, figure_name);
+    legacy_output_file = fullfile(fig_dir, 'Fig02_BaseflowUxUxx.png');
+    if exist(legacy_output_file, 'file') == 2
+        delete(legacy_output_file);
+    end
+
     fig = figure('Visible', 'off', 'Position', [80, 80, 1220, 480]);
     cleanup_obj = onCleanup(@() close(fig)); %#ok<NASGU>
 
@@ -15,19 +23,19 @@ function FigureAudit = write_baseflow_derivative_figures(fig_dir, X, Y, ~, dX)
     local_draw_derivative_field(X, Y, dX.ux, 'u_x');
     hold on;
     plot(X(1, :), Y(1, :), 'k-', 'LineWidth', 1.2);
-    title('Baseflow derivative: u_x');
+    title(sprintf('%s: u_x', derivative_label));
 
     nexttile;
     local_draw_derivative_field(X, Y, dX.uxx, 'u_{xx}');
     hold on;
     plot(X(1, :), Y(1, :), 'k-', 'LineWidth', 1.2);
-    title('Baseflow derivative: u_{xx}');
+    title(sprintf('%s: u_{xx}', derivative_label));
 
     saveas(fig, output_file);
 
     FigureAudit = struct();
     FigureAudit.output_files = {output_file};
-    FigureAudit.figure_name = 'Fig02_BaseflowUxUxx.png';
+    FigureAudit.figure_name = figure_name;
 end
 
 function local_draw_derivative_field(X, Y, field_value, label_text)

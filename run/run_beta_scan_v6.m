@@ -18,6 +18,13 @@ function scan = run_beta_scan_v6(varargin)
     addParameter(p, 'SigmaTriplet', [], @(x) isempty(x) || isnumeric(x));
     addParameter(p, 'KrylovDimensionFloor', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
     addParameter(p, 'KrylovDimensionCap', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
+    addParameter(p, 'MachInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'ReInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'TInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'Gamma', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 1.0));
+    addParameter(p, 'Pr', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'WallModel', '', @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    addParameter(p, 'WallTemperature', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
     addParameter(p, 'ForceLowMemoryDescriptor', false, @(x) islogical(x) || isnumeric(x));
     addParameter(p, 'RunPart4', true, @(x) islogical(x) || isnumeric(x));
     addParameter(p, 'Part3Variant', 'current_v6', @(x) ischar(x) || (isstring(x) && isscalar(x)));
@@ -57,6 +64,13 @@ function scan = run_beta_scan_v6(varargin)
             'SigmaTriplet', p.Results.SigmaTriplet, ...
             'KrylovDimensionFloor', p.Results.KrylovDimensionFloor, ...
             'KrylovDimensionCap', p.Results.KrylovDimensionCap, ...
+            'MachInf', p.Results.MachInf, ...
+            'ReInf', p.Results.ReInf, ...
+            'TInf', p.Results.TInf, ...
+            'Gamma', p.Results.Gamma, ...
+            'Pr', p.Results.Pr, ...
+            'WallModel', p.Results.WallModel, ...
+            'WallTemperature', p.Results.WallTemperature, ...
             'ForceLowMemoryDescriptor', p.Results.ForceLowMemoryDescriptor, ...
             'CaseName', case_name, ...
             'ReuseExistingCase', false, ...
@@ -87,6 +101,7 @@ function scan = run_beta_scan_v6(varargin)
     scan.scan_root_dir = scan_root_dir;
     scan.betas = betas;
     scan.benchmark_profile = char(string(p.Results.BenchmarkProfile));
+    scan.wall_model = local_resolve_wall_model_option(p.Results.WallModel);
     scan.run_part4 = logical(p.Results.RunPart4);
     scan.cases = cases;
     scan.branch_correlation_to_prev = branch_correlation_to_prev;
@@ -146,7 +161,7 @@ end
 function local_write_summary_text(output_file, scan)
 %LOCAL_WRITE_SUMMARY_TEXT Save one human-readable beta scan summary.
 
-    fid = fopen(output_file, 'w');
+    fid = open_output_text_file(output_file);
     if fid == -1
         warning('run_beta_scan_v6:SummaryWrite', ...
             'Unable to write beta scan summary: %s', output_file);
@@ -154,27 +169,28 @@ function local_write_summary_text(output_file, scan)
     end
     cleanup_obj = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
-    fprintf(fid, 'Beta scan v6\n');
-    fprintf(fid, 'scan_case: %s\n', scan.scan_case_name);
-    fprintf(fid, 'benchmark_profile: %s\n', scan.benchmark_profile);
-    fprintf(fid, 'run_part4: %d\n', scan.run_part4);
+    fprintf(fid, '%s\n', localize_output_label('Beta scan v6'));
+    fprintf(fid, '%s: %s\n', localize_output_label('scan_case'), scan.scan_case_name);
+    fprintf(fid, '%s: %s\n', localize_output_label('benchmark_profile'), scan.benchmark_profile);
+    fprintf(fid, '%s: %s\n', localize_output_label('wall_model'), scan.wall_model);
+    fprintf(fid, '%s: %d\n', localize_output_label('run_part4'), scan.run_part4);
     fprintf(fid, '\n');
     for k = 1:numel(scan.cases)
         summary_k = scan.cases(k).summary;
         fprintf(fid, 'beta %d: %.6f\n', k, scan.cases(k).beta);
-        fprintf(fid, '  stage: %s\n', summary_k.stage_completed);
+        fprintf(fid, '  %s: %s\n', localize_output_label('stage'), summary_k.stage_completed);
         if strcmp(summary_k.stage_completed, 'Part4')
-            fprintf(fid, '  leading_sigma: %+.6e%+.6ei\n', summary_k.leading_sigma_r, summary_k.leading_sigma_i);
-            fprintf(fid, '  residual: %.6e\n', summary_k.leading_residual);
-            fprintf(fid, '  bubble: %.6f\n', summary_k.leading_bubble_overlap);
-            fprintf(fid, '  shock: %.6f\n', summary_k.leading_shock_energy_frac);
-            fprintf(fid, '  checker: %.6f\n', summary_k.leading_checker_ratio);
+            fprintf(fid, '  %s: %+.6e%+.6ei\n', localize_output_label('leading_sigma'), summary_k.leading_sigma_r, summary_k.leading_sigma_i);
+            fprintf(fid, '  %s: %.6e\n', localize_output_label('leading_residual'), summary_k.leading_residual);
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('bubble'), summary_k.leading_bubble_overlap);
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('shock'), summary_k.leading_shock_energy_frac);
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('checker'), summary_k.leading_checker_ratio);
             if isfield(summary_k, 'leading_mode_family')
-                fprintf(fid, '  family: %s\n', summary_k.leading_mode_family);
+                fprintf(fid, '  %s: %s\n', localize_output_label('family'), summary_k.leading_mode_family);
             end
         end
         if k > 1
-            fprintf(fid, '  corr_to_prev: %.6f\n', scan.branch_correlation_to_prev(k));
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('corr_to_prev'), scan.branch_correlation_to_prev(k));
         end
         fprintf(fid, '\n');
     end
@@ -186,4 +202,16 @@ function token = local_fmt_num(value)
     token = sprintf('%.4f', value);
     token = strrep(token, '-', 'm');
     token = strrep(token, '.', 'p');
+end
+
+function wall_model = local_resolve_wall_model_option(override_value)
+%LOCAL_RESOLVE_WALL_MODEL_OPTION Resolve one wall-model option with defaults.
+
+    if strlength(string(override_value)) == 0
+        wall_model = 'adiabatic';
+    else
+        wall_model = char(string(override_value));
+    end
+    wall_model = normalize_wall_model(wall_model, ...
+        'ErrorIdentifier', 'run_beta_scan_v6:WallModel');
 end

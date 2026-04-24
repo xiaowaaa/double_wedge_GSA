@@ -15,6 +15,8 @@ function test_config_fields()
     assert(isfield(config_out, 'beta'), 'beta should exist after validation.');
     assert(isfield(config_out, 'state_layout'), 'state_layout should exist after validation.');
     assert(isfield(config_out, 'operator_model'), 'operator_model should exist after validation.');
+    assert(isfield(config_out, 'wall_model'), 'wall_model should exist after validation.');
+    assert(isfield(config_out, 'T_wall'), 'T_wall should exist after validation.');
     assert(isfield(config_out, 'allow_placeholder_operator'), ...
         'allow_placeholder_operator should exist after validation.');
     assert(isfield(config_out, 'use_sponge'), 'use_sponge should exist after validation.');
@@ -38,6 +40,12 @@ function test_config_fields()
         'Default state_layout should follow the Paper-A primitive-five path.');
     assert(strcmp(config_out.operator_model, 'paperA_primitive5_direct_v6'), ...
         'Default operator_model should identify the Paper-A v6 assembly.');
+    assert(strcmp(config_out.wall_model, 'adiabatic'), ...
+        'Default wall_model should be adiabatic.');
+    assert(abs(config_out.T_wall - 298.0) < 1.0e-12, ...
+        'Default T_wall should be 298 K.');
+    assert(abs(config_out.T_wall_nd - 298.0 / config_out.T_inf) < 1.0e-12, ...
+        'Default T_wall_nd should follow T_wall/T_inf.');
     assert(isequal(config_out.allow_placeholder_operator, false), ...
         'Placeholder operator must be disabled by default.');
     assert(isequal(config_out.use_sponge, false), ...
@@ -107,6 +115,38 @@ assert(isfield(config_out, 'sigma_triplet') && numel(config_out.sigma_triplet) =
     config_filter.U_ref = 1.0;
     config_filter.L_ref = 1.0;
     validate_config(config_filter, 'Verbose', false, 'RequireReferenceScales', true);
+
+    config_isothermal = config;
+    config_isothermal.wall_model = 'isothermal_wall';
+    config_isothermal.T_wall = 320.0;
+    [config_isothermal_out, report_iso] = validate_config(config_isothermal, 'Verbose', false);
+    assert(strcmp(config_isothermal_out.wall_model, 'isothermal'), ...
+        'Isothermal aliases should normalize to "isothermal".');
+    assert(abs(config_isothermal_out.T_wall_nd - 320.0 / config_isothermal_out.T_inf) < 1.0e-12, ...
+        'Isothermal T_wall_nd should follow T_wall/T_inf.');
+    assert(strcmp(report_iso.wall_model, 'isothermal'), ...
+        'Validation report should expose the normalized wall model.');
+
+    config_bad_wall = config;
+    config_bad_wall.wall_model = 'unknown_wall_model';
+    did_error = false;
+    try
+        validate_config(config_bad_wall, 'Verbose', false);
+    catch ME
+        did_error = strcmp(ME.identifier, 'validate_config:WallModel');
+    end
+    assert(did_error, 'Unknown wall_model must raise validate_config:WallModel.');
+
+    config_bad_temperature = config;
+    config_bad_temperature.wall_model = 'isothermal';
+    config_bad_temperature.T_wall = -10.0;
+    did_error = false;
+    try
+        validate_config(config_bad_temperature, 'Verbose', false);
+    catch ME
+        did_error = strcmp(ME.identifier, 'validate_config:WallTemperature');
+    end
+    assert(did_error, 'Invalid wall temperature must raise validate_config:WallTemperature.');
 
     fprintf('[test_config_fields] PASS\n');
 end

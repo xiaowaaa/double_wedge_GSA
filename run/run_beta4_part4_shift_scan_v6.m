@@ -154,7 +154,7 @@ end
 function local_write_summary_text(output_file, scan)
 %LOCAL_WRITE_SUMMARY_TEXT Write a compact comparison text file next to the scan outputs.
 
-    fid = fopen(output_file, 'w');
+    fid = open_output_text_file(output_file);
     if fid == -1
         warning('run_beta4_part4_shift_scan_v6:SummaryWrite', ...
             'Unable to write scan summary: %s', output_file);
@@ -163,22 +163,22 @@ function local_write_summary_text(output_file, scan)
 
     cleanup_obj = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
-    fprintf(fid, 'beta=4 Part4-only local shift scan\n');
-    fprintf(fid, 'source_case: %s\n', scan.source_case_name);
+    fprintf(fid, '%s\n', localize_output_label('beta=4 Part4-only local shift scan'));
+    fprintf(fid, '%s: %s\n', localize_output_label('source_case'), scan.source_case_name);
     fprintf(fid, '\n');
     for k = 1:numel(scan.cases)
         summary_k = scan.cases(k).summary;
         fprintf(fid, 'shift %d: %+.6f%+.6fi\n', k, real(scan.cases(k).shift), imag(scan.cases(k).shift));
-        fprintf(fid, '  case_dir: %s\n', scan.cases(k).case_dir);
-        fprintf(fid, '  leading_sigma: %+.6e%+.6ei\n', summary_k.leading_sigma_r, summary_k.leading_sigma_i);
-        fprintf(fid, '  residual: %.6e\n', summary_k.leading_residual);
-        fprintf(fid, '  bubble: %.6f\n', summary_k.leading_bubble_overlap);
-        fprintf(fid, '  near_wall: %.6f\n', summary_k.leading_near_wall_energy_frac);
-        fprintf(fid, '  free_stream: %.6f\n', summary_k.leading_free_stream_energy_frac);
-        fprintf(fid, '  outlet_wall: %.6f\n', summary_k.leading_outlet_wall_energy_frac);
-        fprintf(fid, '  shock: %.6f\n', summary_k.leading_shock_energy_frac);
-        fprintf(fid, '  checker: %.6f\n', summary_k.leading_checker_ratio);
-        fprintf(fid, '  publication: %d\n', summary_k.leading_selected_for_publication);
+        fprintf(fid, '  %s: %s\n', localize_output_label('case_dir'), scan.cases(k).case_dir);
+        fprintf(fid, '  %s: %+.6e%+.6ei\n', localize_output_label('leading_sigma'), summary_k.leading_sigma_r, summary_k.leading_sigma_i);
+        fprintf(fid, '  %s: %.6e\n', localize_output_label('leading_residual'), summary_k.leading_residual);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('bubble'), summary_k.leading_bubble_overlap);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('near_wall'), summary_k.leading_near_wall_energy_frac);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('free_stream'), summary_k.leading_free_stream_energy_frac);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('outlet_wall'), summary_k.leading_outlet_wall_energy_frac);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('shock'), summary_k.leading_shock_energy_frac);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('checker'), summary_k.leading_checker_ratio);
+        fprintf(fid, '  %s: %d\n', localize_output_label('publication_allowed'), summary_k.leading_selected_for_publication);
         fprintf(fid, '\n');
     end
 end

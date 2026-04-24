@@ -8,9 +8,15 @@ function output_file = plot_boundary_map(X, Y, config, varargin)
     addParameter(p, 'Verbose', true, @(x) islogical(x) && isscalar(x));
     parse(p, varargin{:});
 
+    audit_label = localize_output_label('boundary audit');
     output_file = char(string(p.Results.OutputFile));
     if isempty(output_file)
-        output_file = fullfile(pwd, 'grid_boundary_audit.png');
+        output_file = fullfile(pwd, sprintf('%s.png', ...
+            sanitize_output_filename_token(audit_label)));
+    end
+    legacy_output_file = fullfile(fileparts(output_file), 'boundary_audit.png');
+    if exist(legacy_output_file, 'file') == 2
+        delete(legacy_output_file);
     end
 
     [mask, ~] = build_boundary_masks(X, Y, config, 'Verbose', false);
@@ -30,7 +36,7 @@ function output_file = plot_boundary_map(X, Y, config, varargin)
     cleanup_fig = onCleanup(@() close(fig)); %#ok<NASGU>
     imagesc(labels);
     axis image tight;
-    title('Boundary Audit');
+    title(audit_label);
     xlabel('i');
     ylabel('j');
     colorbar;

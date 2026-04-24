@@ -29,9 +29,9 @@ function cfg = config_case()
     cfg.flow.T_inf = 191.0;
     cfg.flow.gamma = 1.4;
     cfg.flow.Pr = 0.71;
-    cfg.flow.Cv = 1.0 / (cfg.flow.gamma * (cfg.flow.gamma - 1.0) * cfg.flow.Ma_inf^2);
-    cfg.flow.Sutherland_nd = 110.4 / cfg.flow.T_inf;
+    cfg.flow.wall_model = 'adiabatic';
     cfg.flow.T_wall = 298.0;
+    cfg.flow = finalize_flow_config(cfg.flow);
 
     cfg.geometry = struct();
     cfg.geometry.x_hinge = 0.0;
@@ -43,7 +43,7 @@ function cfg = config_case()
     cfg.bc.right_type = 'outlet';
 
     cfg.plot = struct();
-    cfg.plot.boundary_audit_name = 'grid_boundary_audit.png';
+    cfg.plot.boundary_audit_name = '网格边界审计.png';
     cfg.plot.visible = 'off';
 
     cfg.benchmark = get_double_wedge_benchmark_profile('sidharth2018_code_correction_v1');

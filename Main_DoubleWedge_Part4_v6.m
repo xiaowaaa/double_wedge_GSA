@@ -634,8 +634,8 @@ function tbl = local_build_figure_criteria_table(Config)
 
     target = local_get_target_benchmark(Config);
     if strcmpi(target, 'Sidharth2018')
-        pass_signal_mode = 'bubble-centred mode with visible w'' support in the separation bubble';
-        reject_signal_mode = 'compact upper-layer packet or shock-only packet';
+        pass_signal_mode = 'bubble-centred mode with a literature-style component layout in the separation bubble';
+        reject_signal_mode = 'mismatched component windows, compact upper-layer packet, or shock-only packet';
     else
         pass_signal_mode = 'physically supported mode with consistent bubble localization';
         reject_signal_mode = 'debug-only or boundary/shock-dominated packet';
@@ -702,6 +702,10 @@ function audit = local_build_plot_contract_audit(Config, FigureAudit, selection_
     audit.phase_anchor_y = PlotProvenanceAudit.phase_anchor_y;
     audit.generated_files = local_optional_field(FigureAudit, 'output_files', {});
     audit.sidharth_generated_files = local_optional_field(FigureAudit, 'sidharth_output_files', {});
+    audit.sidharth_component_contract = local_optional_field(FigureAudit, 'sidharth_component_contract', '');
+    audit.sidharth_displayed_components = local_optional_field(FigureAudit, 'sidharth_displayed_components', {});
+    audit.sidharth_common_plot_window = local_optional_field(FigureAudit, 'sidharth_common_plot_window', [NaN, NaN, NaN, NaN]);
+    audit.sidharth_gallery_component = local_optional_field(FigureAudit, 'sidharth_gallery_component', '');
     audit.figure_status = local_optional_field(FigureAudit, 'status', '');
     audit.bubble_window = local_optional_field(GeometryAudit, 'bubble_window', [NaN, NaN, NaN, NaN]);
 end

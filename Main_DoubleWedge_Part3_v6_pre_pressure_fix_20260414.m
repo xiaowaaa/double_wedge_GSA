@@ -174,7 +174,9 @@ function Main_DoubleWedge_Part3_v6_pre_pressure_fix_20260414()
 
     [LNS_L, LNS_Gam, BCRowAudit] = apply_structured_bc_rows( ...
         LNS_L, LNS_Gam, data.BoundaryMasks, data.X, ...
-        'Verbose', false, 'StateLayout', Config.state_layout); %#ok<NASGU>
+        'Verbose', false, ...
+        'StateLayout', Config.state_layout, ...
+        'WallModel', local_get_optional_field(Config, 'wall_model', 'adiabatic')); %#ok<NASGU>
 
     row_norm_before = full(max(abs(LNS_L), [], 2));
     gamma_diag = full(diag(LNS_Gam));
@@ -288,6 +290,17 @@ function Config = local_normalize_config(Config)
     if ~isfield(Config, 'beta')
         Config.beta = 0.0;
     end
+    if ~isfield(Config, 'wall_model') || isempty(Config.wall_model)
+        Config.wall_model = 'adiabatic';
+    end
+    Config.wall_model = normalize_wall_model(Config.wall_model, ...
+        'ErrorIdentifier', 'Main_DoubleWedge_Part3_v6_pre_pressure_fix_20260414:WallModel');
+    if ~isfield(Config, 'T_wall') && isfield(Config, 'T_wall_nd')
+        Config.T_wall = Config.T_wall_nd * Config.T_inf;
+    elseif ~isfield(Config, 'T_wall')
+        Config.T_wall = 298.0;
+    end
+    Config.T_wall_nd = Config.T_wall / Config.T_inf;
     if ~isfield(Config, 'plot_contract')
         Config.plot_contract = 'paperA_reference_mainset_v1';
     end

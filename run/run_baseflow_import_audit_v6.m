@@ -146,7 +146,7 @@ end
 function local_write_summary_text(output_file, summary)
 %LOCAL_WRITE_SUMMARY_TEXT Save a concise human-readable audit summary.
 
-    fid = fopen(output_file, 'w');
+    fid = open_output_text_file(output_file);
     if fid == -1
         warning('run_baseflow_import_audit_v6:SummaryWrite', ...
             'Unable to write summary text file: %s', output_file);
@@ -154,42 +154,43 @@ function local_write_summary_text(output_file, summary)
     end
     cleanup_obj = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
-    fprintf(fid, 'Baseflow import audit v6\n');
-    fprintf(fid, 'baseflow_file: %s\n', summary.baseflow_file);
-    fprintf(fid, 'expected_dims: [%s]\n', local_format_dims(summary.expected_dims));
-    fprintf(fid, 'raw_dims: %d x %d\n', summary.raw_dims(1), summary.raw_dims(2));
-    fprintf(fid, 'working_dims: %d x %d\n', summary.working_dims(1), summary.working_dims(2));
-    fprintf(fid, 'stride: %d x %d\n', summary.stride(1), summary.stride(2));
-    fprintf(fid, 'top_type: %s\n', summary.top_type);
-    fprintf(fid, 'num_vars_read: %d\n', summary.num_vars_read);
-    fprintf(fid, 'standard_num_vars: %d\n', summary.standard_num_vars);
-    fprintf(fid, 'gamma_column_present: %d\n', summary.gamma_column_present);
-    fprintf(fid, 'num_optional_standard_vars: %d\n', summary.num_optional_standard_vars);
-    fprintf(fid, 'num_extra_vars: %d\n', summary.num_extra_vars);
-    fprintf(fid, 'num_vars_inferred: %d\n', summary.num_vars_inferred);
-    fprintf(fid, 'eos_relative_error: %.6e\n', summary.eos_relative_error);
-    fprintf(fid, 'eos_relative_error_stats: min=%.6e p05=%.6e median=%.6e mean=%.6e p95=%.6e max=%.6e\n', ...
+    fprintf(fid, '%s\n', localize_output_label('Baseflow import audit v6'));
+    fprintf(fid, '%s: %s\n', localize_output_label('baseflow_file'), summary.baseflow_file);
+    fprintf(fid, '%s: [%s]\n', localize_output_label('expected_dims'), local_format_dims(summary.expected_dims));
+    fprintf(fid, '%s: %d x %d\n', localize_output_label('raw_dims'), summary.raw_dims(1), summary.raw_dims(2));
+    fprintf(fid, '%s: %d x %d\n', localize_output_label('working_dims'), summary.working_dims(1), summary.working_dims(2));
+    fprintf(fid, '%s: %d x %d\n', localize_output_label('stride'), summary.stride(1), summary.stride(2));
+    fprintf(fid, '%s: %s\n', localize_output_label('top_type'), summary.top_type);
+    fprintf(fid, '%s: %d\n', localize_output_label('num_vars_read'), summary.num_vars_read);
+    fprintf(fid, '%s: %d\n', localize_output_label('standard_num_vars'), summary.standard_num_vars);
+    fprintf(fid, '%s: %d\n', localize_output_label('gamma_column_present'), summary.gamma_column_present);
+    fprintf(fid, '%s: %d\n', localize_output_label('num_optional_standard_vars'), summary.num_optional_standard_vars);
+    fprintf(fid, '%s: %d\n', localize_output_label('num_extra_vars'), summary.num_extra_vars);
+    fprintf(fid, '%s: %d\n', localize_output_label('num_vars_inferred'), summary.num_vars_inferred);
+    fprintf(fid, '%s: %.6e\n', localize_output_label('eos_relative_error'), summary.eos_relative_error);
+    fprintf(fid, '%s: min=%.6e p05=%.6e median=%.6e mean=%.6e p95=%.6e max=%.6e\n', ...
+        localize_output_label('eos_relative_error_stats'), ...
         summary.eos_relative_error_stats.min, summary.eos_relative_error_stats.p05, ...
         summary.eos_relative_error_stats.median, summary.eos_relative_error_stats.mean, ...
         summary.eos_relative_error_stats.p95, summary.eos_relative_error_stats.max);
-    fprintf(fid, 'wall_temperature_relative_mismatch: %.6e\n', summary.wall_temperature_relative_mismatch);
-    fprintf(fid, 'required_eos_relation: %s\n', summary.required_eos_relation);
-    fprintf(fid, '%s stats:\n', summary.pressure_ratio_label);
+    fprintf(fid, '%s: %.6e\n', localize_output_label('wall_temperature_relative_mismatch'), summary.wall_temperature_relative_mismatch);
+    fprintf(fid, '%s: %s\n', localize_output_label('required_eos_relation'), summary.required_eos_relation);
+    fprintf(fid, '%s 统计:\n', summary.pressure_ratio_label);
     fprintf(fid, '  min=%.6e p05=%.6e median=%.6e mean=%.6e p95=%.6e max=%.6e\n', ...
         summary.pressure_ratio_stats.min, summary.pressure_ratio_stats.p05, ...
         summary.pressure_ratio_stats.median, summary.pressure_ratio_stats.mean, ...
         summary.pressure_ratio_stats.p95, summary.pressure_ratio_stats.max);
-    fprintf(fid, 'pressure stats: min=%.6e median=%.6e max=%.6e\n', ...
+    fprintf(fid, '%s: min=%.6e median=%.6e max=%.6e\n', localize_output_label('pressure stats'), ...
         summary.pressure_stats.min, summary.pressure_stats.median, summary.pressure_stats.max);
-    fprintf(fid, 'rho stats: min=%.6e median=%.6e max=%.6e\n', ...
+    fprintf(fid, '%s: min=%.6e median=%.6e max=%.6e\n', localize_output_label('rho stats'), ...
         summary.rho_stats.min, summary.rho_stats.median, summary.rho_stats.max);
-    fprintf(fid, 'temperature stats: min=%.6e median=%.6e max=%.6e\n', ...
+    fprintf(fid, '%s: min=%.6e median=%.6e max=%.6e\n', localize_output_label('temperature stats'), ...
         summary.temperature_stats.min, summary.temperature_stats.median, summary.temperature_stats.max);
-    fprintf(fid, 'mach stats: min=%.6e median=%.6e max=%.6e\n', ...
+    fprintf(fid, '%s: min=%.6e median=%.6e max=%.6e\n', localize_output_label('mach stats'), ...
         summary.mach_stats.min, summary.mach_stats.median, summary.mach_stats.max);
-    fprintf(fid, 'w stats: min=%.6e median=%.6e max=%.6e\n', ...
+    fprintf(fid, '%s: min=%.6e median=%.6e max=%.6e\n', localize_output_label('w stats'), ...
         summary.w_stats.min, summary.w_stats.median, summary.w_stats.max);
-    fprintf(fid, 'top-row means: rho=%.6e T=%.6e p=%.6e mach=%.6e\n', ...
+    fprintf(fid, '%s: rho=%.6e T=%.6e p=%.6e Mach=%.6e\n', localize_output_label('top-row means'), ...
         summary.freestream_toprow.rho_mean, summary.freestream_toprow.T_mean, ...
         summary.freestream_toprow.p_mean, summary.freestream_toprow.mach_mean);
 end

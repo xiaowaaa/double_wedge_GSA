@@ -25,3 +25,8 @@ desktop.ini
 
 # Literature PDFs are local references, not source code.
 paper/*.pdf
+
+# Local migration bundles and curated large artifacts
+archive/
+_to_review/
+results/

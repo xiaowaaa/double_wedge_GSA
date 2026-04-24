@@ -15,6 +15,13 @@ function Main_DoubleWedge_Part1_v6(varargin)
     addParameter(p, 'SigmaTriplet', [], @(x) isempty(x) || isnumeric(x));
     addParameter(p, 'KrylovDimensionFloor', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
     addParameter(p, 'KrylovDimensionCap', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
+    addParameter(p, 'MachInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'ReInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'TInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'Gamma', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 1.0));
+    addParameter(p, 'Pr', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'WallModel', '', @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    addParameter(p, 'WallTemperature', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
     addParameter(p, 'BenchmarkProfile', 'sidharth2018_code_correction_v1', ...
         @(x) ischar(x) || (isstring(x) && isscalar(x)));
     parse(p, varargin{:});
@@ -32,6 +39,7 @@ function Main_DoubleWedge_Part1_v6(varargin)
         cfg.reader.expected_dims = double(p.Results.ExpectedDims(:)).';
     end
     cfg.bc.top_type = char(string(p.Results.TopType));
+    cfg.flow = local_apply_flow_overrides(cfg.flow, p.Results);
 
     base = read_phenglei_baseflow(cfg);
     base = preprocess_baseflow(base, cfg);
@@ -71,7 +79,9 @@ function Config = local_make_v6_config(cfg, base, opts)
     Config.Pr = cfg.flow.Pr;
     Config.Cv_nd = cfg.flow.Cv;
     Config.S_nd = cfg.flow.Sutherland_nd;
-    Config.T_wall_nd = cfg.flow.T_wall / cfg.flow.T_inf;
+    Config.wall_model = cfg.flow.wall_model;
+    Config.T_wall = cfg.flow.T_wall;
+    Config.T_wall_nd = cfg.flow.T_wall_nd;
 
     Config.Nx_raw = size(base.raw.x, 2);
     Config.Ny_raw = size(base.raw.x, 1);
@@ -201,4 +211,24 @@ function Config = local_make_v6_config(cfg, base, opts)
     Config.plot_contract = cfg.benchmark.primary_plot_contract;
     Config.secondary_plot_contract = cfg.benchmark.secondary_plot_contract;
     Config.datafile = cfg.io.baseflow_file;
+end
+
+function flow = local_apply_flow_overrides(flow, opts)
+%LOCAL_APPLY_FLOW_OVERRIDES Apply user-facing flow and wall overrides.
+
+    if ~isempty(opts.MachInf), flow.Ma_inf = double(opts.MachInf); end
+    if ~isempty(opts.ReInf), flow.Re_inf = double(opts.ReInf); end
+    if ~isempty(opts.TInf)
+        flow.T_inf = double(opts.TInf);
+        if isfield(flow, 'Sutherland_nd')
+            flow = rmfield(flow, 'Sutherland_nd');
+        end
+    end
+    if ~isempty(opts.Gamma), flow.gamma = double(opts.Gamma); end
+    if ~isempty(opts.Pr), flow.Pr = double(opts.Pr); end
+    if strlength(string(opts.WallModel)) > 0
+        flow.wall_model = char(string(opts.WallModel));
+    end
+    if ~isempty(opts.WallTemperature), flow.T_wall = double(opts.WallTemperature); end
+    flow = finalize_flow_config(flow);
 end

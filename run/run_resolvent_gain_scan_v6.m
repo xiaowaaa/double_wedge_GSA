@@ -22,6 +22,13 @@ function result = run_resolvent_gain_scan_v6(varargin)
     addParameter(p, 'SigmaTriplet', [], @(x) isempty(x) || isnumeric(x));
     addParameter(p, 'KrylovDimensionFloor', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
     addParameter(p, 'KrylovDimensionCap', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
+    addParameter(p, 'MachInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'ReInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'TInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'Gamma', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 1.0));
+    addParameter(p, 'Pr', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'WallModel', '', @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    addParameter(p, 'WallTemperature', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
     addParameter(p, 'ForceLowMemoryDescriptor', false, @(x) islogical(x) || isnumeric(x));
     addParameter(p, 'Part3Variant', 'current_v6', @(x) ischar(x) || (isstring(x) && isscalar(x)));
     addParameter(p, 'UseSemiArtificialViscosity', [], @(x) isempty(x) || islogical(x) || isnumeric(x));
@@ -57,6 +64,13 @@ function result = run_resolvent_gain_scan_v6(varargin)
         'SigmaTriplet', p.Results.SigmaTriplet, ...
         'KrylovDimensionFloor', p.Results.KrylovDimensionFloor, ...
         'KrylovDimensionCap', p.Results.KrylovDimensionCap, ...
+        'MachInf', p.Results.MachInf, ...
+        'ReInf', p.Results.ReInf, ...
+        'TInf', p.Results.TInf, ...
+        'Gamma', p.Results.Gamma, ...
+        'Pr', p.Results.Pr, ...
+        'WallModel', p.Results.WallModel, ...
+        'WallTemperature', p.Results.WallTemperature, ...
         'ForceLowMemoryDescriptor', p.Results.ForceLowMemoryDescriptor, ...
         'CaseName', p.Results.CaseName, ...
         'ReuseExistingCase', p.Results.ReuseExistingCase, ...
@@ -76,6 +90,7 @@ function result = run_resolvent_gain_scan_v6(varargin)
     result.case_dir = case_dir;
     result.baseflow_file = summary.baseflow_file;
     result.benchmark_profile = summary.benchmark_profile;
+    result.wall_model = summary.wall_model;
     result.beta = summary.beta;
     result.sigma_list = sigma_list;
     result.part3_summary = summary;
@@ -89,7 +104,7 @@ end
 function local_write_summary_text(output_file, result)
 %LOCAL_WRITE_SUMMARY_TEXT Save one human-readable resolvent summary.
 
-    fid = fopen(output_file, 'w');
+    fid = open_output_text_file(output_file);
     if fid == -1
         warning('run_resolvent_gain_scan_v6:SummaryWrite', ...
             'Unable to write resolvent summary file: %s', output_file);
@@ -97,23 +112,24 @@ function local_write_summary_text(output_file, result)
     end
     cleanup_obj = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
-    fprintf(fid, 'Resolvent gain scan v6\n');
-    fprintf(fid, 'case_dir: %s\n', result.case_dir);
-    fprintf(fid, 'baseflow_file: %s\n', result.baseflow_file);
-    fprintf(fid, 'benchmark_profile: %s\n', result.benchmark_profile);
-    fprintf(fid, 'beta: %.6f\n', result.beta);
+    fprintf(fid, '%s\n', localize_output_label('Resolvent gain scan v6'));
+    fprintf(fid, '%s: %s\n', localize_output_label('case_dir'), result.case_dir);
+    fprintf(fid, '%s: %s\n', localize_output_label('baseflow_file'), result.baseflow_file);
+    fprintf(fid, '%s: %s\n', localize_output_label('benchmark_profile'), result.benchmark_profile);
+    fprintf(fid, '%s: %s\n', localize_output_label('wall_model'), result.wall_model);
+    fprintf(fid, '%s: %.6f\n', localize_output_label('beta'), result.beta);
     fprintf(fid, '\n');
     for k = 1:numel(result.scan.entries)
         entry = result.scan.entries(k);
         fprintf(fid, 'sigma %d: %+.6e%+.6ei\n', k, real(entry.sigma), imag(entry.sigma));
-        fprintf(fid, '  gain: %.6e\n', entry.gain);
-        fprintf(fid, '  sigma_min: %.6e\n', entry.sigma_min);
-        fprintf(fid, '  bubble: %.6f\n', entry.bubble_overlap);
-        fprintf(fid, '  near_wall: %.6f\n', entry.near_wall_energy_frac);
-        fprintf(fid, '  shock: %.6f\n', entry.shock_energy_frac);
-        fprintf(fid, '  free_stream: %.6f\n', entry.free_stream_energy_frac);
-        fprintf(fid, '  outlet_wall: %.6f\n', entry.outlet_wall_energy_frac);
-        fprintf(fid, '  solver: %s\n', entry.solver);
+        fprintf(fid, '  %s: %.6e\n', localize_output_label('gain'), entry.gain);
+        fprintf(fid, '  %s: %.6e\n', localize_output_label('sigma_min'), entry.sigma_min);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('bubble'), entry.bubble_overlap);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('near_wall'), entry.near_wall_energy_frac);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('shock'), entry.shock_energy_frac);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('free_stream'), entry.free_stream_energy_frac);
+        fprintf(fid, '  %s: %.6f\n', localize_output_label('outlet_wall'), entry.outlet_wall_energy_frac);
+        fprintf(fid, '  %s: %s\n', localize_output_label('solver'), entry.solver);
         fprintf(fid, '\n');
     end
 end

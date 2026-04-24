@@ -19,6 +19,13 @@ function scan = run_sigma_shift_scan_v6(varargin)
     addParameter(p, 'SigmaTriplet', [], @(x) isempty(x) || isnumeric(x));
     addParameter(p, 'KrylovDimensionFloor', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
     addParameter(p, 'KrylovDimensionCap', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 8));
+    addParameter(p, 'MachInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'ReInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'TInf', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'Gamma', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 1.0));
+    addParameter(p, 'Pr', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
+    addParameter(p, 'WallModel', '', @(x) ischar(x) || (isstring(x) && isscalar(x)));
+    addParameter(p, 'WallTemperature', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && isfinite(x) && x > 0));
     addParameter(p, 'ForceLowMemoryDescriptor', false, @(x) islogical(x) || isnumeric(x));
     addParameter(p, 'RunPart4', true, @(x) islogical(x) || isnumeric(x));
     addParameter(p, 'Part3Variant', 'current_v6', @(x) ischar(x) || (isstring(x) && isscalar(x)));
@@ -81,6 +88,13 @@ function scan = run_sigma_shift_scan_v6(varargin)
             'SigmaTriplet', sigma_triplet, ...
             'KrylovDimensionFloor', p.Results.KrylovDimensionFloor, ...
             'KrylovDimensionCap', p.Results.KrylovDimensionCap, ...
+            'MachInf', p.Results.MachInf, ...
+            'ReInf', p.Results.ReInf, ...
+            'TInf', p.Results.TInf, ...
+            'Gamma', p.Results.Gamma, ...
+            'Pr', p.Results.Pr, ...
+            'WallModel', p.Results.WallModel, ...
+            'WallTemperature', p.Results.WallTemperature, ...
             'ForceLowMemoryDescriptor', p.Results.ForceLowMemoryDescriptor, ...
             'CaseName', case_name, ...
             'ReuseExistingCase', false, ...
@@ -116,6 +130,7 @@ function scan = run_sigma_shift_scan_v6(varargin)
     scan.run_part4 = logical(p.Results.RunPart4);
     scan.part3_variant = char(string(p.Results.Part3Variant));
     scan.benchmark_profile = char(string(p.Results.BenchmarkProfile));
+    scan.wall_model = local_resolve_wall_model_option(p.Results.WallModel);
     scan.cases = cases;
     scan.summary_table = local_build_summary_table(cases);
 
@@ -179,7 +194,7 @@ end
 function local_write_summary_text(output_file, scan)
 %LOCAL_WRITE_SUMMARY_TEXT Write a compact comparison text file next to the scan outputs.
 
-    fid = fopen(output_file, 'w');
+    fid = open_output_text_file(output_file);
     if fid == -1
         warning('run_sigma_shift_scan_v6:SummaryWrite', ...
             'Unable to write scan summary: %s', output_file);
@@ -188,29 +203,42 @@ function local_write_summary_text(output_file, scan)
 
     cleanup_obj = onCleanup(@() fclose(fid)); %#ok<NASGU>
 
-    fprintf(fid, 'Sigma-shift scan v6\n');
-    fprintf(fid, 'scan_case: %s\n', scan.scan_case_name);
-    fprintf(fid, 'benchmark_profile: %s\n', scan.benchmark_profile);
-    fprintf(fid, 'run_part4: %d\n', scan.run_part4);
-    fprintf(fid, 'part3_variant: %s\n', scan.part3_variant);
+    fprintf(fid, '%s\n', localize_output_label('Sigma-shift scan v6'));
+    fprintf(fid, '%s: %s\n', localize_output_label('scan_case'), scan.scan_case_name);
+    fprintf(fid, '%s: %s\n', localize_output_label('benchmark_profile'), scan.benchmark_profile);
+    fprintf(fid, '%s: %s\n', localize_output_label('wall_model'), scan.wall_model);
+    fprintf(fid, '%s: %d\n', localize_output_label('run_part4'), scan.run_part4);
+    fprintf(fid, '%s: %s\n', localize_output_label('part3_variant'), scan.part3_variant);
     fprintf(fid, '\n');
     for k = 1:numel(scan.cases)
         summary_k = scan.cases(k).summary;
         fprintf(fid, 'shift %d: %+.6f%+.6fi\n', k, real(scan.cases(k).shift), imag(scan.cases(k).shift));
-        fprintf(fid, '  case_dir: %s\n', scan.cases(k).case_dir);
-        fprintf(fid, '  stage: %s\n', summary_k.stage_completed);
+        fprintf(fid, '  %s: %s\n', localize_output_label('case_dir'), scan.cases(k).case_dir);
+        fprintf(fid, '  %s: %s\n', localize_output_label('stage'), summary_k.stage_completed);
         if strcmp(summary_k.stage_completed, 'Part4')
-            fprintf(fid, '  leading_sigma: %+.6e%+.6ei\n', summary_k.leading_sigma_r, summary_k.leading_sigma_i);
-            fprintf(fid, '  residual: %.6e\n', summary_k.leading_residual);
-            fprintf(fid, '  bubble: %.6f\n', summary_k.leading_bubble_overlap);
-            fprintf(fid, '  near_wall: %.6f\n', summary_k.leading_near_wall_energy_frac);
-            fprintf(fid, '  shock: %.6f\n', summary_k.leading_shock_energy_frac);
-            fprintf(fid, '  checker: %.6f\n', summary_k.leading_checker_ratio);
+            fprintf(fid, '  %s: %+.6e%+.6ei\n', localize_output_label('leading_sigma'), summary_k.leading_sigma_r, summary_k.leading_sigma_i);
+            fprintf(fid, '  %s: %.6e\n', localize_output_label('leading_residual'), summary_k.leading_residual);
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('bubble'), summary_k.leading_bubble_overlap);
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('near_wall'), summary_k.leading_near_wall_energy_frac);
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('shock'), summary_k.leading_shock_energy_frac);
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('checker'), summary_k.leading_checker_ratio);
         else
-            fprintf(fid, '  row_ratio_before: %.6e\n', summary_k.operator_health.row_ratio_before);
-            fprintf(fid, '  shock_coverage: %.6f\n', summary_k.shock_info.coverage_fraction);
-            fprintf(fid, '  pressure_clip: %d\n', summary_k.pressure_row_audit.total_clipped);
+            fprintf(fid, '  %s: %.6e\n', localize_output_label('row_ratio_before'), summary_k.operator_health.row_ratio_before);
+            fprintf(fid, '  %s: %.6f\n', localize_output_label('shock_coverage'), summary_k.shock_info.coverage_fraction);
+            fprintf(fid, '  %s: %d\n', localize_output_label('pressure_clip'), summary_k.pressure_row_audit.total_clipped);
         end
         fprintf(fid, '\n');
     end
+end
+
+function wall_model = local_resolve_wall_model_option(override_value)
+%LOCAL_RESOLVE_WALL_MODEL_OPTION Resolve one wall-model option with defaults.
+
+    if strlength(string(override_value)) == 0
+        wall_model = 'adiabatic';
+    else
+        wall_model = char(string(override_value));
+    end
+    wall_model = normalize_wall_model(wall_model, ...
+        'ErrorIdentifier', 'run_sigma_shift_scan_v6:WallModel');
 end

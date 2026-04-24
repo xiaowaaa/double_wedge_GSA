@@ -238,7 +238,9 @@ function Main_DoubleWedge_Part3_v6()
 
     [LNS_L, LNS_Gam, BCRowAudit] = apply_structured_bc_rows( ...
         LNS_L, LNS_Gam, data.BoundaryMasks, data.X, ...
-        'Verbose', false, 'StateLayout', Config.state_layout); %#ok<NASGU>
+        'Verbose', false, ...
+        'StateLayout', Config.state_layout, ...
+        'WallModel', local_get_optional_field(Config, 'wall_model', 'adiabatic')); %#ok<NASGU>
     [PostBCAblationAudit, OperatorAblationTable] = local_build_post_bc_ablation_audit( ...
         SpongeOperator, KavScaled, BetaOperatorInterleaved, PressureRowDeltaOperator, ...
         pressure_row_delta_coeffs, BCRowAudit, ShockInfo, SavInfo, PressureRowAudit, ...
@@ -312,6 +314,19 @@ end
 function Config = local_normalize_config(Config)
 %LOCAL_NORMALIZE_CONFIG Force the v6 primitive-five production settings.
 
+    if isfield(Config, 'flow') && isstruct(Config.flow)
+        if ~isfield(Config, 'Ma_inf') && isfield(Config.flow, 'Ma_inf'), Config.Ma_inf = Config.flow.Ma_inf; end
+        if ~isfield(Config, 'Re_inf') && isfield(Config.flow, 'Re_inf'), Config.Re_inf = Config.flow.Re_inf; end
+        if ~isfield(Config, 'T_inf') && isfield(Config.flow, 'T_inf'), Config.T_inf = Config.flow.T_inf; end
+        if ~isfield(Config, 'gamma') && isfield(Config.flow, 'gamma'), Config.gamma = Config.flow.gamma; end
+        if ~isfield(Config, 'Pr') && isfield(Config.flow, 'Pr'), Config.Pr = Config.flow.Pr; end
+        if ~isfield(Config, 'Cv_nd') && isfield(Config.flow, 'Cv'), Config.Cv_nd = Config.flow.Cv; end
+        if ~isfield(Config, 'S_nd') && isfield(Config.flow, 'Sutherland_nd'), Config.S_nd = Config.flow.Sutherland_nd; end
+        if ~isfield(Config, 'wall_model') && isfield(Config.flow, 'wall_model'), Config.wall_model = Config.flow.wall_model; end
+        if ~isfield(Config, 'T_wall') && isfield(Config.flow, 'T_wall'), Config.T_wall = Config.flow.T_wall; end
+        if ~isfield(Config, 'T_wall_nd') && isfield(Config.flow, 'T_wall_nd'), Config.T_wall_nd = Config.flow.T_wall_nd; end
+    end
+
     Config.state_layout = 'primitive5_u_v_w_T_p';
     Config.operator_model = 'paperA_primitive5_direct_v6';
     if ~isfield(Config, 'n_eigs'), Config.n_eigs = 80; end
@@ -377,6 +392,17 @@ function Config = local_normalize_config(Config)
     if ~isfield(Config, 'beta')
         Config.beta = 0.0;
     end
+    if ~isfield(Config, 'wall_model') || isempty(Config.wall_model)
+        Config.wall_model = 'adiabatic';
+    end
+    Config.wall_model = normalize_wall_model(Config.wall_model, ...
+        'ErrorIdentifier', 'Main_DoubleWedge_Part3_v6:WallModel');
+    if ~isfield(Config, 'T_wall') && isfield(Config, 'T_wall_nd')
+        Config.T_wall = Config.T_wall_nd * Config.T_inf;
+    elseif ~isfield(Config, 'T_wall')
+        Config.T_wall = 298.0;
+    end
+    Config.T_wall_nd = Config.T_wall / Config.T_inf;
     if ~isfield(Config, 'plot_contract')
         Config.plot_contract = 'paperA_reference_mainset_v1';
     end

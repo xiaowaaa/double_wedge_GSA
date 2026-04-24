@@ -2,69 +2,57 @@
 
 This file explains the current folder classification and the few top-level exceptions that remain intentional.
 
-## Root-Level Production Solver Files
+## Root Production Files
 
 - `main_double_wedge_part1.m`
 - `main_double_wedge_part2.m`
 - `main_double_wedge_part3.m`
 - `main_double_wedge_part4.m`
+- `Main_DoubleWedge_Part1_v6.m` to `Main_DoubleWedge_Part4_v6.m`
+- `Main_DoubleWedge_Part3_v6_pre_pressure_fix_20260414.m`
+- `setup_double_wedge_paths.m`
+- `double_wedge_baseflow.dat`
+- `Diagnose_MatrixHealth.m`
 
-These remain at the repository root because the active production solver path still runs through them directly.
+These remain at the repository root because they are direct production, compatibility, path, input, or diagnostic entry points. There is intentionally no root-level `run.m`; use `run/run_all.m`, `run/run_phase2_validation.m`, or the explicit Part scripts.
 
-There is intentionally no root-level `run.m` anymore. Use `run/run_all.m`, `run/run_phase2_validation.m`, or the explicit `main_double_wedge_part*.m` scripts so MATLAB's built-in `run(...)` stays available.
+## Root Metadata
 
-## Root-Level Project Metadata Kept Intentionally
+- `AGENTS.md`: repo-wide working agreement for agents.
+- `README.md`: general project overview.
+- `README_codex_handoff.md`: compact onboarding page for a fresh Codex session.
 
-- `AGENTS.md`
-- `README.md`
-- `README_codex_handoff.md`
+Do not keep duplicate root task logs, migration reports, fix logs, or temporary plans after their useful content has been folded into `docs/coordination/` and `docs/audit.md`.
 
-`AGENTS.md` must stay at the repository root so Codex and other agents can pick up the repo-wide instructions automatically.
+## Code And Workflows
 
-## Modular And Reusable Code
+- `run/`: user-facing scripts, scans, workflow runners, and validation drivers.
+- `src/core/`: reusable reader, preprocessing, operator, BC, SAV, descriptor, ranking, plotting, and audit helpers.
+- `tests/`: MATLAB unit, regression, and smoke checks.
 
-- `src/core/`
+Prefer shared helpers under `src/core/` over duplicated logic in scripts. Keep root Part scripts as stable production wrappers.
 
-Put new reusable implementation files here unless the task specifically extends the active root-level production path.
+## Documentation
 
-## Run And Workflow Scripts
-
-- `run/`
-
-Put scripted entry points, validation drivers, and post-processing scripts here.
-
-## Tests
-
-- `tests/`
-
-Put validation and smoke checks here. Follow the required validation order from `AGENTS.md`.
-
-## Documentation And Handoff
-
-- `docs/audit.md` for major technical audit notes and solver-change history
-- `docs/coordination/` for cross-account handoff, current status, task log, and work queue
-- `docs/background/` for retained investigation reports, literature surveys, and other long-lived background notes
-- `docs/prompts/` for saved task prompts and request snapshots
-- `README_codex_handoff.md` as the top-level quick entry page for a new Codex session
-
-Do not keep iterative one-off `PLAN.md`, `DEBUG_REPORT.md`, or `FIX_LOG.md` files once their useful content has already been absorbed into `docs/coordination/` and `docs/audit.md`.
+- `docs/coordination/`: active context, work queue, concise task log, and coordination workflow.
+- `docs/audit.md`: major technical history, solver assumptions, and validation-relevant change notes.
+- `docs/background/`: long-lived investigations, literature notes, and validation background.
+- `docs/prompts/`: saved prompts or request snapshots.
+- `docs/PROJECT_STRUCTURE.md`: this file.
 
 ## Literature
 
-- `paper/`
-
-Local references live here. The main method reference is `paper/A.pdf`.
-
-- `paper/*.pdf` stores the reference PDFs themselves.
-- `paper/notes/` stores literature comparison notes and longer reading summaries.
+- `paper/`: reference PDFs and related notes.
+- `paper/notes/`: literature comparison notes and longer reading summaries.
 
 Do not keep transient extracted page-image folders here unless they are actively referenced by code or documentation.
 
-## Generated Outputs
+## Outputs And Evidence
 
-- `outputs/figs/` for figures
-- `outputs/mat/` for MAT artifacts
-- `outputs/logs/` for diary and text logs
+- `outputs/`: generated figures, MAT artifacts, run summaries, and logs.
+- `outputs/logs/`: generated diary/text logs.
+- `results/`: lightweight copies or summaries of selected results for quick review.
+- `archive/`: retained historical results and user-provided evidence.
+- `_to_review/`: uncertain side material that is not required by the current production path.
 
-Do not store generated outputs under `docs/`, `run/`, `src/`, or `tests/`.
-Do not keep long-lived full-repository mirror copies under `outputs/` either; create transfer bundles on demand outside the main workspace or archive them externally after handoff.
+Do not store generated outputs under `docs/`, `run/`, `src/`, or `tests/`. Do not keep long-lived full-repository mirror copies under `outputs/`; create transfer bundles on demand outside the main workspace.

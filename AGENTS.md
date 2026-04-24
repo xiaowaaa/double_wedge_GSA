@@ -1,32 +1,35 @@
 # AGENTS
 
-## Repository Working Agreement
+## Working Agreement
 
 - Prioritize correctness, consistency, maintainability, and long-term extensibility over minimal edits.
-- Medium-to-large refactors are explicitly allowed when they remove fragile structure, duplicated logic, dead code, or unclear interfaces.
-- When there is a conflict between a minimal patch and a reasonable structural refactor, prefer the structural refactor.
-- Any refactor must carry the full call chain with it:
-  configuration, helper functions, scripts, tests, documentation, and outputs must be updated together.
-- Do not trust screenshots alone for stability conclusions.
-  All debugging and fixes must trace back to original arrays, matrices, eigenpairs, and plotting/provenance metadata.
-- For the current double-wedge stability workflow, the production path is the root legacy4 chain:
+- Medium-to-large refactors are allowed when they remove fragile structure, duplicated logic, dead code, or unclear interfaces.
+- Carry the full call chain with any refactor: configuration, helpers, scripts, tests, documentation, and outputs must stay consistent.
+- Do not trust screenshots alone for stability conclusions. Trace conclusions back to arrays, matrices, eigenpairs, fields, and provenance metadata.
+- The current production path is the root `v6` chain:
   `main_double_wedge_part1.m -> main_double_wedge_part2.m -> main_double_wedge_part3.m -> main_double_wedge_part4.m`.
-- High-priority failure modes to audit first:
-  1. semi-artificial viscosity not truly entering the effective linear operator,
-  2. semi-artificial viscosity entering the wrong model or wrong scaling,
-  3. dominant-mode ranking selecting a compact pseudo-mode,
-  4. field extraction / normalization / plotting mismatch,
-  5. boundary labeling or BC row overwrite mismatch.
 
-## Refactor Expectations
+## Coordination Docs
+
+- Start new work from `README_codex_handoff.md`, then read:
+  `docs/coordination/ACTIVE_CONTEXT.md`, `docs/coordination/WORK_QUEUE.md`, `docs/coordination/TASK_LOG.md`, and `docs/audit.md`.
+- Keep current status in `docs/coordination/ACTIVE_CONTEXT.md`.
+- Keep next work in `docs/coordination/WORK_QUEUE.md`.
+- Keep completed-task milestones in `docs/coordination/TASK_LOG.md`.
+- Keep major solver, validation, and method history in `docs/audit.md`.
+- Do not keep one-off root `PLAN.md`, `DEBUG_REPORT.md`, `FIX_LOG.md`, migration summaries, or duplicate task logs after their content has been folded into the canonical docs.
+
+## Solver Guardrails
 
 - Prefer shared helpers over duplicated logic between root scripts and `src/core`.
-- Keep result provenance explicit:
-  figures, MAT outputs, config snapshots, and audit tables should live together and be traceable to one run directory.
-- Keep long-lived document types grouped by purpose:
-  background investigations under `docs/background/`, active handoff and task tracking under `docs/coordination/`, and major technical history in `docs/audit.md`.
-- Do not accumulate temporary one-off `PLAN.md`, `DEBUG_REPORT.md`, or `FIX_LOG.md` files once their contents have been absorbed into the coordination or audit docs; delete or fold them back into the canonical logs instead.
-- When the user asks to move the solver to another computer, prepare one dedicated transfer folder that preserves the repo-relative layout required by `setup_double_wedge_paths.m`.
-  Include the root solver entry files, `run/`, `src/`, `tests/`, `docs/`, `paper/`, key README files, and a transfer README; exclude bulky `outputs/` unless the user explicitly asks for historical results too.
+- Keep result provenance explicit: figures, MAT outputs, config snapshots, and audit tables should live together under one run directory.
 - New diagnostics should default behind config/debug flags when they change output volume, but important correctness guards may fail hard.
 - Legacy4 with nonzero `beta` must not silently continue unless true spanwise terms are implemented.
+
+## High-Priority Failure Modes
+
+- Semi-artificial viscosity not truly entering the effective linear operator.
+- Semi-artificial viscosity entering the wrong model or wrong scaling.
+- Dominant-mode ranking selecting a compact pseudo-mode.
+- Field extraction, normalization, or plotting mismatching the selected eigenpair.
+- Boundary labeling or BC row overwrite mismatch.

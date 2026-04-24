@@ -18,13 +18,15 @@ function [config_out, report] = validate_config(config_in, varargin)
 
     config_out = config_in;
     added_defaults = {};
+    had_T_wall = isfield(config_in, 'T_wall');
+    had_T_wall_nd = isfield(config_in, 'T_wall_nd');
 
     [config_out, added_defaults] = local_add_default(config_out, added_defaults, ...
         'Cv_nd', 1.0 / (config_out.gamma * (config_out.gamma - 1.0) * config_out.Ma_inf^2));
     [config_out, added_defaults] = local_add_default(config_out, added_defaults, ...
         'S_nd', 110.4 / config_out.T_inf);
     [config_out, added_defaults] = local_add_default(config_out, added_defaults, ...
-        'T_wall_nd', 298.0 / config_out.T_inf);
+        'wall_model', 'adiabatic');
     [config_out, added_defaults] = local_add_default(config_out, added_defaults, ...
         'boundary_map', struct( ...
             'south', 'mixed_symmetry_wall', ...
@@ -110,6 +112,35 @@ function [config_out, report] = validate_config(config_in, varargin)
             'compute_adjoint_lead', false));
     [config_out, added_defaults] = local_add_default(config_out, added_defaults, ...
         'debug', struct());
+
+    config_out.wall_model = normalize_wall_model(config_out.wall_model, ...
+        'ErrorIdentifier', 'validate_config:WallModel');
+    if had_T_wall
+        if ~had_T_wall_nd
+            config_out.T_wall_nd = config_out.T_wall / config_out.T_inf;
+            added_defaults{end + 1} = 'T_wall_nd'; %#ok<AGROW>
+        else
+            config_out.T_wall_nd = config_out.T_wall / config_out.T_inf;
+        end
+    elseif had_T_wall_nd
+        config_out.T_wall = config_out.T_wall_nd * config_out.T_inf;
+        added_defaults{end + 1} = 'T_wall'; %#ok<AGROW>
+    else
+        config_out.T_wall = 298.0;
+        config_out.T_wall_nd = config_out.T_wall / config_out.T_inf;
+        added_defaults{end + 1} = 'T_wall'; %#ok<AGROW>
+        added_defaults{end + 1} = 'T_wall_nd'; %#ok<AGROW>
+    end
+    if ~(isnumeric(config_out.T_wall) && isscalar(config_out.T_wall) && ...
+            isfinite(config_out.T_wall) && config_out.T_wall > 0)
+        error('validate_config:WallTemperature', ...
+            'Config.T_wall must be one positive finite scalar.');
+    end
+    if ~(isnumeric(config_out.T_wall_nd) && isscalar(config_out.T_wall_nd) && ...
+            isfinite(config_out.T_wall_nd) && config_out.T_wall_nd > 0)
+        error('validate_config:WallTemperature', ...
+            'Config.T_wall_nd must be one positive finite scalar.');
+    end
 
     if ~isfield(config_out.semi_artificial_viscosity, 'epsilon')
         config_out.semi_artificial_viscosity.epsilon = 5.0e-2;
@@ -308,10 +339,13 @@ function [config_out, report] = validate_config(config_in, varargin)
     report.state_layout = config_out.state_layout;
     report.operator_model = config_out.operator_model;
     report.allow_placeholder_operator = config_out.allow_placeholder_operator;
+    report.wall_model = config_out.wall_model;
 
     if p.Results.Verbose
-        fprintf('[validate_config] state_layout=%s operator_model=%s beta=%g use_sponge=%d use_sav=%d use_shock_reg=%d allow_placeholder=%d\n', ...
+        fprintf(['[validate_config] state_layout=%s operator_model=%s beta=%g wall_model=%s ' ...
+            'use_sponge=%d use_sav=%d use_shock_reg=%d allow_placeholder=%d\n'], ...
             config_out.state_layout, config_out.operator_model, config_out.beta, ...
+            config_out.wall_model, ...
             config_out.use_sponge, ...
             config_out.use_semi_artificial_viscosity, ...
             config_out.use_shock_source_regularization, ...

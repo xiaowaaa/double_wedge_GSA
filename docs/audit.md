@@ -614,3 +614,22 @@ Phase: Static review follow-up for beta viscous coupling and pressure-closure au
 - Validation after this batch:
   - targeted tests passed for beta terms, pressure closure audits, analytic Sutherland derivatives, structured scalar operators, and Part3 beta-audit smoke,
   - full `run_phase2_validation` passed end-to-end on 2026-04-23 after re-running with `setup_double_wedge_paths('IncludeTests', true)`.
+
+Date: 2026-04-23
+Phase: Literature-style plot contract, Chinese labels, and saved refresh provenance
+
+- Audited the retained structural `270 x 128` Part4 output back to saved arrays and provenance instead of relying on screenshots. The saved plot lead remains the first sorted Part4 mode (`sigma_r=+8.936831e-03`, `sigma_i=+8.992567e-03`, original mode index 86), with `beta=0` and numerically inactive `w'`.
+- Retired the short-lived dedicated special disturbance figure and returned `beta=0` plotting to one unified literature-style bubble-component layout: `write_paperA_reference_figures.m` now emits `Sidharth_Fig14_主模态分离泡分量图.png` plus `Sidharth_Fig15_候选模态分量图_第01页.png`, choosing `w'/u'/v'/T'/p'` when spanwise content is active and `u'/v'/T'/p'` otherwise.
+- Added Chinese figure titles where they improve readability while keeping file names and audit identifiers ASCII, including `特征值谱`, `候选模态局部放大`, `文献风格主模态分量图`, and `模态分量概览`.
+- Corrected a refresh-time provenance hazard: `refresh_saved_paperA_outputs.m` now preserves saved Part4 sorted order and plot-lead indices by default when redrawing figures, so refreshed `FigureAudit` remains consistent with `EigVals_s` / `EigVecs_s`.
+- Updated runner summaries to surface `sidharth_component_contract=literature_style_bubble_components` and `sidharth_gallery_component=u` for the retained structural `beta=0` case, and refreshed the migrated `outputs/mat/sidharth2018_structural_270x128_v6/` summary paths and figures.
+- Added `test_write_paperA_reference_figures_literature_style_contract` and `test_refresh_saved_paperA_outputs_preserve_order`; full `run_phase2_validation` passed end-to-end after the final plotting-contract change.
+
+Date: 2026-04-24
+Phase: Configurable flow inputs and wall-thermal boundary handling across the active v6 path
+
+- Added shared helpers `finalize_flow_config.m`, `normalize_wall_model.m`, and `get_wall_thermal_bc_rows.m` so free-stream inputs and wall-thermal settings are normalized once and reused consistently.
+- `Main_DoubleWedge_Part1_v6.m` and the active `run/` workflows now accept explicit `MachInf`, `ReInf`, `TInf`, `Gamma`, `Pr`, `WallModel`, and `WallTemperature` overrides instead of relying only on one fixed benchmark configuration.
+- `src/core/preprocess_baseflow.m`, `src/core/build_paperA_baseflow_context.m`, and runner summaries now persist wall-model and target wall-temperature provenance so reused cases can reject mismatched thermal setups instead of silently reusing incompatible outputs.
+- `src/core/apply_structured_bc_rows.m` now switches the south-wall thermal rows between adiabatic and isothermal contracts on the primitive-five path while retaining explicit audit fields for the chosen thermal constraint.
+- Validation after this batch intentionally kept `Part4_v6` out of dynamic execution. A targeted non-`Part4` subset passed locally on 2026-04-24, including flow-config, wall-BC, preprocessing, Part3 beta-audit, Part3-only runner, reuse, beta-scan, sigma-shift-scan, resolvent-scan, research-workflow, and Sidharth-workflow coverage; `Part4_v6` was reviewed statically with MATLAB `checkcode`.
